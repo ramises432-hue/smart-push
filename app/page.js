@@ -15,7 +15,11 @@ export default function AdminDashboard() {
     month: { total: 0, qr: 0, nfc: 0 },
     year: { total: 0, qr: 0, nfc: 0 },
   });
-  const [metricPeriod, setMetricPeriod] = useState('month');
+
+  // Periodo individual dentro de cada recuadro de métrica ('week' | 'month' | 'year')
+  const [usosPeriod, setUsosPeriod] = useState('month');
+  const [qrPeriod, setQrPeriod] = useState('month');
+  const [nfcPeriod, setNfcPeriod] = useState('month');
 
   const [settings, setSettings] = useState({
     whatsapp_template:
@@ -483,13 +487,31 @@ export default function AdminDashboard() {
   ).length;
   const inactiveCount = cards.length - activeCount;
 
-  const currentMetrics = globalStats[metricPeriod] || globalStats.month;
-  const periodLabel =
-    metricPeriod === 'week'
-      ? 'esta semana'
-      : metricPeriod === 'year'
-      ? 'este año'
-      : 'este mes';
+  const getPeriodText = (p) =>
+    p === 'week' ? 'esta semana' : p === 'year' ? 'este año' : 'este mes';
+
+  const renderPeriodTabs = (value, onChange) => (
+    <div className="inline-flex bg-zinc-950 border border-zinc-800 rounded-lg p-0.5 mt-2.5">
+      {[
+        { id: 'week', label: 'Semana' },
+        { id: 'month', label: 'Mes' },
+        { id: 'year', label: 'Año' },
+      ].map((tab) => (
+        <button
+          key={tab.id}
+          type="button"
+          onClick={() => onChange(tab.id)}
+          className={`text-[10px] font-medium px-2 py-0.5 rounded transition ${
+            value === tab.id
+              ? 'bg-amber-500 text-zinc-950 font-semibold'
+              : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
 
   const currentFolderObj = folders.find((f) => f.id === activeView);
 
@@ -527,7 +549,7 @@ export default function AdminDashboard() {
               onClick={openSettingsModal}
               className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-xs font-medium px-3.5 py-2 rounded-lg border border-zinc-700 transition"
             >
-              ⚙ Configuración
+              ⚙️ Configuración
             </button>
             <button
               onClick={() => setShowBatchModal(true)}
@@ -546,35 +568,11 @@ export default function AdminDashboard() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 pt-6 space-y-6">
-        {/* MÉTRICAS GLOBALES */}
-        <section className="space-y-2.5">
-          <div className="flex items-center justify-end gap-2">
-            <span className="text-[11px] text-zinc-400">
-              Periodo de interacciones:
-            </span>
-            <div className="inline-flex bg-zinc-900 border border-zinc-800 rounded-lg p-0.5">
-              {[
-                { id: 'week', label: 'Semana' },
-                { id: 'month', label: 'Mes' },
-                { id: 'year', label: 'Año' },
-              ].map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setMetricPeriod(item.id)}
-                  className={`text-xs font-medium px-2.5 py-1 rounded-md transition ${
-                    metricPeriod === item.id
-                      ? 'bg-amber-500 text-zinc-950 font-semibold'
-                      : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+        {/* RECUADROS DE MÉTRICAS GLOBALES */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          {/* Cuadro 1: Tarjetas activas y no activadas */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col justify-between">
+            <div>
               <p className="text-xs text-zinc-400">Tarjetas activas</p>
               <div className="flex items-baseline gap-2 mt-1">
                 <p className="text-2xl font-bold text-emerald-400">
@@ -584,58 +582,74 @@ export default function AdminDashboard() {
                   / {cards.length} total
                 </span>
               </div>
-              <p className="text-[11px] text-zinc-400 mt-1">
-                No activadas:{' '}
-                <span className="text-amber-400 font-semibold">
-                  {inactiveCount}
-                </span>
-              </p>
             </div>
+            <p className="text-[11px] text-zinc-400 mt-2.5">
+              No activadas:{' '}
+              <span className="text-amber-400 font-semibold">
+                {inactiveCount}
+              </span>
+            </p>
+          </div>
 
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+          {/* Cuadro 2: Usos con selector Semana / Mes / Año dentro del cuadro */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col justify-between">
+            <div>
               <p className="text-xs text-zinc-400">
-                Usos {periodLabel} (Total)
+                Usos {getPeriodText(usosPeriod)} (Total)
               </p>
               <p className="text-2xl font-bold text-amber-400 mt-1">
-                {currentMetrics.total}
+                {(globalStats[usosPeriod] || globalStats.month).total}
               </p>
             </div>
+            <div>{renderPeriodTabs(usosPeriod, setUsosPeriod)}</div>
+          </div>
 
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex items-start justify-between">
+          {/* Cuadro 3: Escaneos QR con selector Semana / Mes / Año e ícono de engranaje */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col justify-between">
+            <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs text-zinc-400">
-                  Escaneos QR ({periodLabel})
+                  Escaneos QR ({getPeriodText(qrPeriod)})
                 </p>
-                <p className="text-2xl font-bold mt-1">{currentMetrics.qr}</p>
+                <p className="text-2xl font-bold mt-1">
+                  {(globalStats[qrPeriod] || globalStats.month).qr}
+                </p>
               </div>
               <button
                 onClick={() => {
                   if (cards[0]) openEditCounts(cards[0]);
                 }}
                 title="Modificar conteos de escaneos QR"
-                className="text-[11px] text-zinc-400 hover:text-amber-400 bg-zinc-950 border border-zinc-800 px-2 py-1 rounded-md transition"
+                className="text-xs text-zinc-400 hover:text-amber-400 bg-zinc-950 border border-zinc-800 px-2 py-1 rounded-md transition"
               >
-                ✏️
+                ⚙️
               </button>
             </div>
+            <div>{renderPeriodTabs(qrPeriod, setQrPeriod)}</div>
+          </div>
 
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex items-start justify-between">
+          {/* Cuadro 4: Toques NFC con selector Semana / Mes / Año e ícono de engranaje */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col justify-between">
+            <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs text-zinc-400">
-                  Toques NFC ({periodLabel})
+                  Toques NFC ({getPeriodText(nfcPeriod)})
                 </p>
-                <p className="text-2xl font-bold mt-1">{currentMetrics.nfc}</p>
+                <p className="text-2xl font-bold mt-1">
+                  {(globalStats[nfcPeriod] || globalStats.month).nfc}
+                </p>
               </div>
               <button
                 onClick={() => {
                   if (cards[0]) openEditCounts(cards[0]);
                 }}
                 title="Modificar conteos de toques NFC"
-                className="text-[11px] text-zinc-400 hover:text-amber-400 bg-zinc-950 border border-zinc-800 px-2 py-1 rounded-md transition"
+                className="text-xs text-zinc-400 hover:text-amber-400 bg-zinc-950 border border-zinc-800 px-2 py-1 rounded-md transition"
               >
-                ✏️
+                ⚙️
               </button>
             </div>
+            <div>{renderPeriodTabs(nfcPeriod, setNfcPeriod)}</div>
           </div>
         </section>
 
@@ -764,7 +778,7 @@ export default function AdminDashboard() {
                                 title="Modificar nombre de la carpeta"
                                 className="text-xs text-zinc-500 hover:text-amber-400 px-1"
                               >
-                                ✏️
+                                ⚙️
                               </button>
                             </div>
                           )}
@@ -1040,9 +1054,9 @@ export default function AdminDashboard() {
                             <button
                               onClick={() => openEditCounts(card)}
                               title="Modificar conteos QR / NFC"
-                              className="text-[11px] text-zinc-400 hover:text-amber-400"
+                              className="text-xs text-zinc-400 hover:text-amber-400"
                             >
-                              ✏️
+                              ⚙️
                             </button>
                           </div>
                           <p className="text-[11px] text-zinc-500">
@@ -1283,7 +1297,7 @@ export default function AdminDashboard() {
             className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-2xl w-full p-6 space-y-6 shadow-2xl my-8"
           >
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <h2 className="text-lg font-bold">⚙ Configuración del Sistema</h2>
+              <h2 className="text-lg font-bold">⚙️ Configuración del Sistema</h2>
               <button
                 type="button"
                 onClick={() => setShowSettingsModal(false)}
