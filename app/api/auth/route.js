@@ -1,14 +1,16 @@
 ﻿import { NextResponse } from 'next/server';
+import { getEffectivePassword } from '@/lib/auth';
 
 export async function POST(request) {
   const { password } = await request.json();
+  const effectivePassword = await getEffectivePassword();
 
-  if (!password || password !== process.env.ADMIN_PASSWORD) {
+  if (!password || password !== effectivePassword) {
     return NextResponse.json({ error: 'Contraseña incorrecta' }, { status: 401 });
   }
 
   const response = NextResponse.json({ ok: true });
-  response.cookies.set('sp_admin', process.env.ADMIN_PASSWORD, {
+  response.cookies.set('sp_admin', effectivePassword, {
     httpOnly: true,
     sameSite: 'lax',
     path: '/',
