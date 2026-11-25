@@ -54,6 +54,7 @@ export default function AdminDashboard() {
   const [pickerSelectedIds, setPickerSelectedIds] = useState([]);
   const [bulkUpdatingFolder, setBulkUpdatingFolder] = useState(false);
   const [targetMoveFolderId, setTargetMoveFolderId] = useState('');
+  const [newInlineFolderName, setNewInlineFolderName] = useState('');
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
 
   const [editingCountsCard, setEditingCountsCard] = useState(null);
@@ -538,7 +539,7 @@ export default function AdminDashboard() {
       )}
 
       {/* BARRA SUPERIOR */}
-      <header className="border-b border-zinc-800 bg-zinc-900/70 backdrop-blur sticky top-0 z-30">
+      <header className="border-b border-zinc-800 bg-zinc-900/70  sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-4 py-3.5 flex flex-wrap items-center justify-between gap-3">
           <button
             onClick={() => {
@@ -979,7 +980,8 @@ export default function AdminDashboard() {
                     onChange={(e) => setTargetMoveFolderId(e.target.value)}
                     className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-amber-500"
                   >
-                    <option value="">Elegir carpeta destino...</option>
+                    <option value="">Mover a carpeta...</option>
+                    <option value="__NEW__">+ Crear nueva carpeta...</option>
                     {folders.map((f) => (
                       <option key={f.id} value={f.id}>
                         📁 {f.name}
@@ -987,11 +989,21 @@ export default function AdminDashboard() {
                     ))}
                   </select>
 
+                  {targetMoveFolderId === '__NEW__' && (
+                    <input
+                      type="text"
+                      autoFocus
+                      value={newInlineFolderName}
+                      onChange={(e) => setNewInlineFolderName(e.target.value)}
+                      placeholder="Nombre de nueva carpeta..."
+                      className="bg-zinc-950 border border-amber-500/60 rounded-xl px-3 py-1.5 text-xs text-zinc-100 w-44 focus:outline-none focus:border-amber-400"
+                    />
+                  )}
+
                   <button
                     type="button"
                     disabled={
-                      selectedCardIds.length === 0 ||
-                      !targetMoveFolderId ||
+                      selectedCardIds.length === 0 || !targetMoveFolderId || (targetMoveFolderId === '__NEW__' && !newInlineFolderName.trim()) ||
                       bulkUpdatingFolder
                     }
                     onClick={handleMoveSelectedToFolder}
@@ -1336,7 +1348,7 @@ export default function AdminDashboard() {
 
       {/* MODAL 1: GENERAR LOTE */}
       {showBatchModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/75  flex items-center justify-center p-4">
           <form
             onSubmit={handleCreateBatch}
             className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl"
@@ -1394,7 +1406,7 @@ export default function AdminDashboard() {
 
       {/* MODAL 2: AGREGAR CARPETA */}
       {showNewFolderModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/75  flex items-center justify-center p-4">
           <form
             onSubmit={handleCreateFolder}
             className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl"
@@ -1430,7 +1442,7 @@ export default function AdminDashboard() {
 
       {/* MODAL 3: MODIFICAR CONTEOS DE ESCANEOS QR / TOQUES NFC */}
       {editingCountsCard && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/75  flex items-center justify-center p-4">
           <form
             onSubmit={handleSaveCounts}
             className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl"
@@ -1520,7 +1532,7 @@ export default function AdminDashboard() {
 
       {/* MODAL 4: CONFIGURACIÓN */}
       {showSettingsModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/75  flex items-center justify-center p-4 overflow-y-auto">
           <form
             onSubmit={handleSaveSettings}
             className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-2xl w-full p-6 space-y-6 shadow-2xl my-8"
@@ -1681,148 +1693,6 @@ export default function AdminDashboard() {
           tarjetas={cards.filter((c) => c.folder_id === currentFolderObj.id)}
           baseUrl={baseUrl}
         />
-      )}
-      {showAddCardsModal && currentFolderObj && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <div>
-                <h2 className="text-base font-bold">
-                  Agregar fichas a "{currentFolderObj.name}"
-                </h2>
-                <p className="text-xs text-zinc-400 mt-0.5">
-                  Marca las fichas que quieras incluir · Seleccionados:{' '}
-                  <span className="text-amber-400 font-semibold">
-                    {pickerSelectedIds.length}
-                  </span>
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowAddCardsModal(false)}
-                className="text-zinc-400 hover:text-zinc-200 text-xs px-2.5 py-1.5 rounded-lg bg-zinc-800"
-              >
-                Cerrar ✕
-              </button>
-            </div>
-
-            <input
-              type="text"
-              autoFocus
-              value={pickerSearch}
-              onChange={(e) => setPickerSearch(e.target.value)}
-              placeholder="Buscar por #ID, nombre de negocio o enlace..."
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-amber-500"
-            />
-
-            <div className="max-h-72 overflow-y-auto space-y-1.5 pr-1">
-              {cards
-                .filter((c) => {
-                  const q = pickerSearch.trim().toLowerCase();
-                  if (!q) return true;
-                  return (
-                    c.id.toLowerCase().includes(q) ||
-                    (c.client_name || '').toLowerCase().includes(q) ||
-                    (c.target_url || '').toLowerCase().includes(q)
-                  );
-                })
-                .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
-                .map((c) => {
-                  const alreadyHere = c.folder_id === currentFolderObj.id;
-                  const isChecked = pickerSelectedIds.includes(c.id);
-                  const otherFolder =
-                    c.folder_id && !alreadyHere
-                      ? folders.find((f) => f.id === c.folder_id)?.name
-                      : null;
-
-                  return (
-                    <div
-                      key={c.id}
-                      onClick={() => {
-                        if (!alreadyHere) togglePickerSelection(c.id);
-                      }}
-                      className={`flex items-center justify-between gap-3 px-3 py-2 rounded-xl border text-xs transition ${
-                        alreadyHere
-                          ? 'bg-zinc-950/60 border-zinc-800/80 text-zinc-500'
-                          : isChecked
-                          ? 'bg-amber-500/10 border-amber-500/50 text-zinc-100 cursor-pointer'
-                          : 'bg-zinc-950 border-zinc-800 hover:border-zinc-700 text-zinc-200 cursor-pointer'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <input
-                          type="checkbox"
-                          checked={alreadyHere || isChecked}
-                          disabled={alreadyHere}
-                          onChange={() => {}}
-                          className="accent-amber-500 shrink-0"
-                        />
-                        <span className="font-mono font-bold text-amber-400 shrink-0">
-                          #{c.id}
-                        </span>
-                        <span className="truncate font-medium">
-                          {c.client_name || 'Sin asignar'}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        {alreadyHere ? (
-                          <>
-                            <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded">
-                              En esta carpeta
-                            </span>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleBulkRemoveFromFolder([c.id]);
-                              }}
-                              title="Quitar de esta carpeta"
-                              className="text-zinc-500 hover:text-red-400 p-1 rounded hover:bg-red-500/10 transition"
-                            >
-                              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M3 6h18" />
-                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                              </svg>
-                            </button>
-                          </>
-                        ) : otherFolder ? (
-                          <span className="text-[10px] text-zinc-500">
-                            En: {otherFolder}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-zinc-500">
-                            {c.category}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800">
-              <button
-                type="button"
-                onClick={() => setShowAddCardsModal(false)}
-                className="px-4 py-2 text-xs text-zinc-400 hover:text-zinc-200"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                disabled={pickerSelectedIds.length === 0 || bulkUpdatingFolder}
-                onClick={handleBulkAddToFolder}
-                className="bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-zinc-950 font-semibold text-xs px-4 py-2 rounded-xl transition"
-              >
-                {bulkUpdatingFolder
-                  ? 'Agregando...'
-                  : `Agregar seleccionados (${pickerSelectedIds.length})`}
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );
