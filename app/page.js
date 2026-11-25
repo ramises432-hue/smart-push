@@ -17,15 +17,15 @@ export default function AdminDashboard() {
     year: { total: 0, qr: 0, nfc: 0 },
   });
 
-  // Periodo individual dentro de cada recuadro de métrica ('week' | 'month' | 'year')
+  // Periodo individual dentro de cada recuadro de mÃ©trica ('week' | 'month' | 'year')
   const [usosPeriod, setUsosPeriod] = useState('month');
   const [qrPeriod, setQrPeriod] = useState('month');
   const [nfcPeriod, setNfcPeriod] = useState('month');
 
   const [settings, setSettings] = useState({
     whatsapp_template:
-      '¡Hola {cliente}! Te comparto el resumen mensual de tu cartel Smart Push (#{id}): este mes recibió {total} interacciones ({qr} por código QR y {nfc} por toque NFC) directo hacia tu enlace.',
-    categories: ['Reseñas Google', 'Menú Digital', 'Instagram', 'WhatsApp'],
+      'Â¡Hola {cliente}! Te comparto el resumen mensual de tu cartel Smart Push (#{id}): este mes recibiÃ³ {total} interacciones ({qr} por cÃ³digo QR y {nfc} por toque NFC) directo hacia tu enlace.',
+    categories: ['ReseÃ±as Google', 'MenÃº Digital', 'Instagram', 'WhatsApp'],
   });
 
   const [loading, setLoading] = useState(true);
@@ -47,6 +47,12 @@ export default function AdminDashboard() {
 
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedCardIds, setSelectedCardIds] = useState([]);
+  const [showAddCardsModal, setShowAddCardsModal] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState('');
+  const [pickerSelectedIds, setPickerSelectedIds] = useState([]);
+  const [bulkUpdatingFolder, setBulkUpdatingFolder] = useState(false);
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
 
   const [editingCountsCard, setEditingCountsCard] = useState(null);
@@ -103,6 +109,11 @@ export default function AdminDashboard() {
     fetchDashboard();
   }, [fetchDashboard]);
 
+  useEffect(() => {
+    setSelectionMode(false);
+    setSelectedCardIds([]);
+  }, [activeView]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setAuthError('');
@@ -115,7 +126,7 @@ export default function AdminDashboard() {
       setPassword('');
       fetchDashboard();
     } else {
-      setAuthError('Contraseña incorrecta');
+      setAuthError('ContraseÃ±a incorrecta');
     }
   };
 
@@ -187,7 +198,7 @@ export default function AdminDashboard() {
   const handleDeleteFolder = async (folder) => {
     if (
       !window.confirm(
-        `¿Eliminar la carpeta "${folder.name}"? Tus fichas no se borran, quedarán en "Todas las Fichas".`
+        `Â¿Eliminar la carpeta "${folder.name}"? Tus fichas no se borran, quedarÃ¡n en "Todas las Fichas".`
       )
     ) {
       return;
@@ -212,7 +223,7 @@ export default function AdminDashboard() {
         action: 'batch',
         quantity: batchQuantity,
         batch_name: batchName,
-        category: settings.categories[0] || 'Reseñas Google',
+        category: settings.categories[0] || 'ReseÃ±as Google',
       }),
     });
     const data = await res.json();
@@ -221,7 +232,7 @@ export default function AdminDashboard() {
       setShowBatchModal(false);
       setBatchName('');
       showToast(
-        `Lote creado (#${String(data.start).padStart(3, '0')} – #${String(
+        `Lote creado (#${String(data.start).padStart(3, '0')} â€“ #${String(
           data.end
         ).padStart(3, '0')})`
       );
@@ -244,7 +255,7 @@ export default function AdminDashboard() {
         id: newId,
         client_name: newClient,
         folder_id: targetFolder,
-        category: settings.categories[0] || 'Reseñas Google',
+        category: settings.categories[0] || 'ReseÃ±as Google',
       }),
     });
     if (res.ok) {
@@ -365,7 +376,7 @@ export default function AdminDashboard() {
   const handleSaveSettings = async (e) => {
     e.preventDefault();
     if (newPassword && newPassword !== confirmPassword) {
-      showToast('Las contraseñas nuevas no coinciden');
+      showToast('Las contraseÃ±as nuevas no coinciden');
       return;
     }
     setSavingSettings(true);
@@ -392,7 +403,7 @@ export default function AdminDashboard() {
       categories: editCategories,
     });
     setShowSettingsModal(false);
-    showToast('Configuración guardada');
+    showToast('ConfiguraciÃ³n guardada');
   };
 
   const formatWhatsappReport = (card) =>
@@ -461,13 +472,13 @@ export default function AdminDashboard() {
           </div>
           <div>
             <label className="block text-xs text-zinc-400 mb-1.5">
-              Contraseña de administrador
+              ContraseÃ±a de administrador
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-amber-500"
               required
             />
@@ -490,14 +501,14 @@ export default function AdminDashboard() {
   const inactiveCount = cards.length - activeCount;
 
   const getPeriodText = (p) =>
-    p === 'week' ? 'esta semana' : p === 'year' ? 'este año' : 'este mes';
+    p === 'week' ? 'esta semana' : p === 'year' ? 'este aÃ±o' : 'este mes';
 
   const renderPeriodTabs = (value, onChange) => (
     <div className="inline-flex bg-zinc-950 border border-zinc-800 rounded-lg p-0.5 mt-2.5">
       {[
         { id: 'week', label: 'Semana' },
         { id: 'month', label: 'Mes' },
-        { id: 'year', label: 'Año' },
+        { id: 'year', label: 'AÃ±o' },
       ].map((tab) => (
         <button
           key={tab.id}
@@ -541,7 +552,7 @@ export default function AdminDashboard() {
             <div>
               <h1 className="font-bold text-lg leading-none">Smart Push</h1>
               <p className="text-xs text-zinc-400 mt-1">
-                Gestión dinámica QR + NFC
+                GestiÃ³n dinÃ¡mica QR + NFC
               </p>
             </div>
           </button>
@@ -551,7 +562,7 @@ export default function AdminDashboard() {
               onClick={openSettingsModal}
               className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-xs font-medium px-3.5 py-2 rounded-lg border border-zinc-700 transition"
             >
-              ⚙️ Configuración
+              âš™ï¸ ConfiguraciÃ³n
             </button>
             <button
               onClick={() => setShowBatchModal(true)}
@@ -570,7 +581,7 @@ export default function AdminDashboard() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 pt-6 space-y-6">
-        {/* RECUADROS DE MÉTRICAS GLOBALES */}
+        {/* RECUADROS DE MÃ‰TRICAS GLOBALES */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
           {/* Cuadro 1: Tarjetas activas y no activadas */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col justify-between">
@@ -593,7 +604,7 @@ export default function AdminDashboard() {
             </p>
           </div>
 
-          {/* Cuadro 2: Usos con selector Semana / Mes / Año dentro del cuadro */}
+          {/* Cuadro 2: Usos con selector Semana / Mes / AÃ±o dentro del cuadro */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col justify-between">
             <div>
               <p className="text-xs text-zinc-400">
@@ -606,7 +617,7 @@ export default function AdminDashboard() {
             <div>{renderPeriodTabs(usosPeriod, setUsosPeriod)}</div>
           </div>
 
-          {/* Cuadro 3: Escaneos QR con selector Semana / Mes / Año e ícono de engranaje */}
+          {/* Cuadro 3: Escaneos QR con selector Semana / Mes / AÃ±o e Ã­cono de engranaje */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col justify-between">
             <div className="flex items-start justify-between">
               <div>
@@ -624,13 +635,13 @@ export default function AdminDashboard() {
                 title="Modificar conteos de escaneos QR"
                 className="text-xs text-zinc-400 hover:text-amber-400 bg-zinc-950 border border-zinc-800 px-2 py-1 rounded-md transition"
               >
-                ⚙️
+                âš™ï¸
               </button>
             </div>
             <div>{renderPeriodTabs(qrPeriod, setQrPeriod)}</div>
           </div>
 
-          {/* Cuadro 4: Toques NFC con selector Semana / Mes / Año e ícono de engranaje */}
+          {/* Cuadro 4: Toques NFC con selector Semana / Mes / AÃ±o e Ã­cono de engranaje */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col justify-between">
             <div className="flex items-start justify-between">
               <div>
@@ -648,20 +659,20 @@ export default function AdminDashboard() {
                 title="Modificar conteos de toques NFC"
                 className="text-xs text-zinc-400 hover:text-amber-400 bg-zinc-950 border border-zinc-800 px-2 py-1 rounded-md transition"
               >
-                ⚙️
+                âš™ï¸
               </button>
             </div>
             <div>{renderPeriodTabs(nfcPeriod, setNfcPeriod)}</div>
           </div>
         </section>
 
-        {/* BARRA DE BÚSQUEDA PERMANENTE */}
+        {/* BARRA DE BÃšSQUEDA PERMANENTE */}
         <div className="relative">
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="🔍 Barra de búsqueda: escribe #ID, nombre de local o URL..."
+            placeholder="ðŸ” Barra de bÃºsqueda: escribe #ID, nombre de local o URL..."
             className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-amber-500 shadow-sm"
           />
           {search && (
@@ -669,12 +680,12 @@ export default function AdminDashboard() {
               onClick={() => setSearch('')}
               className="absolute right-4 top-3 text-xs text-zinc-400 hover:text-zinc-200"
             >
-              Limpiar ✕
+              Limpiar âœ•
             </button>
           )}
         </div>
 
-        {/* VISTA PORTADA: CUADRÍCULA DE CARPETAS */}
+        {/* VISTA PORTADA: CUADRÃCULA DE CARPETAS */}
         {activeView === 'HOME' && !isSearchingFromHome ? (
           <section className="space-y-3">
             <div className="flex items-center justify-between">
@@ -695,7 +706,7 @@ export default function AdminDashboard() {
                   className="bg-zinc-900 hover:bg-zinc-900/80 border border-zinc-800 hover:border-amber-500/60 rounded-2xl p-5 text-left transition flex flex-col justify-between min-h-[155px] group"
                 >
                   <div className="flex items-start justify-between">
-                    <span className="text-2xl">🗂️</span>
+                    <span className="text-2xl">ðŸ—‚ï¸</span>
                     <span className="text-xs font-mono bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
                       {cards.length} fichas
                     </span>
@@ -730,7 +741,7 @@ export default function AdminDashboard() {
                     >
                       <div>
                         <div className="flex items-start justify-between gap-2">
-                          <span className="text-2xl">📁</span>
+                          <span className="text-2xl">ðŸ“</span>
                           <span className="text-xs font-mono bg-zinc-800 text-zinc-200 px-2.5 py-0.5 rounded-full">
                             No. de fichas: {folderCards.length}
                           </span>
@@ -780,7 +791,7 @@ export default function AdminDashboard() {
                                 title="Modificar nombre de la carpeta"
                                 className="text-xs text-zinc-500 hover:text-amber-400 px-1"
                               >
-                                ⚙️
+                                âš™ï¸
                               </button>
                             </div>
                           )}
@@ -844,20 +855,44 @@ export default function AdminDashboard() {
                   }}
                   className="bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold px-3 py-2 rounded-xl border border-zinc-700 transition"
                 >
-                  ← Carpetas
+                  â† Carpetas
                 </button>
                 <h2 className="font-bold text-base">
                   {isSearchingFromHome
-                    ? `Resultados de búsqueda (${visibleCards.length})`
+                    ? `Resultados de bÃºsqueda (${visibleCards.length})`
                     : activeView === 'ALL'
                     ? `Todas las Fichas (${visibleCards.length})`
-                    : `📁 ${currentFolderObj?.name || 'Carpeta'} (${
+                    : `ðŸ“ ${currentFolderObj?.name || 'Carpeta'} (${
                         visibleCards.length
                       })`}
                 </h2>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
+                {currentFolderObj && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !selectionMode;
+                      setSelectionMode(next);
+                      if (!next) setSelectedCardIds([]);
+                    }}
+                    className={`text-xs font-semibold px-3.5 py-2 rounded-xl border transition flex items-center gap-1.5 ${
+                      selectionMode
+                        ? 'bg-amber-500 text-zinc-950 border-amber-400 shadow-sm'
+                        : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border-zinc-700'
+                    }`}
+                  >
+                    <span>
+                      {selectionMode ? '✓ Modo Seleccionados' : '☑️ Seleccionar / Agregar'}
+                    </span>
+                    {selectionMode && selectedCardIds.length > 0 && (
+                      <span className="bg-zinc-950 text-amber-400 font-mono text-[11px] px-1.5 rounded">
+                        {selectedCardIds.length}
+                      </span>
+                    )}
+                  </button>
+                )}
                 {currentFolderObj && (() => {
                   const loteCards = cards.filter(
                     (c) => c.folder_id === currentFolderObj.id
@@ -878,7 +913,7 @@ export default function AdminDashboard() {
                       }
                       className="bg-amber-500 hover:bg-amber-400 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:border-zinc-700 disabled:cursor-not-allowed text-zinc-950 font-semibold text-xs px-3.5 py-2 rounded-xl border border-transparent transition"
                     >
-                      🖨️ Generar Lote QR (Google)
+                      ðŸ–¨ï¸ Generar Lote QR (Google)
                     </button>
                   );
                 })()}
@@ -901,16 +936,84 @@ export default function AdminDashboard() {
                   onChange={(e) => setSortBy(e.target.value)}
                   className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-amber-400 font-medium focus:outline-none focus:border-amber-500"
                 >
-                  <option value="id_asc">Orden: # Número (001→999)</option>
-                  <option value="id_desc">Orden: # Número (999→001)</option>
-                  <option value="date_desc">Fecha/Hora: Más recientes</option>
-                  <option value="date_asc">Fecha/Hora: Más antiguas</option>
-                  <option value="client_asc">Local (A → Z)</option>
+                  <option value="id_asc">Orden: # NÃºmero (001â†’999)</option>
+                  <option value="id_desc">Orden: # NÃºmero (999â†’001)</option>
+                  <option value="date_desc">Fecha/Hora: MÃ¡s recientes</option>
+                  <option value="date_asc">Fecha/Hora: MÃ¡s antiguas</option>
+                  <option value="client_asc">Local (A â†’ Z)</option>
                   <option value="category_asc">Tipo de tarjeta</option>
-                  <option value="usage_desc">Más usos (Mes)</option>
+                  <option value="usage_desc">MÃ¡s usos (Mes)</option>
                 </select>
               </div>
             </div>
+
+            {currentFolderObj && selectionMode && (
+              <div className="bg-zinc-900/95 border border-amber-500/40 rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-lg">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
+                    Seleccionados: {selectedCardIds.length}
+                  </span>
+                  {visibleCards.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSelectedCardIds(
+                          selectedCardIds.length === visibleCards.length
+                            ? []
+                            : visibleCards.map((c) => c.id)
+                        )
+                      }
+                      className="text-[11px] text-zinc-400 hover:text-zinc-200 underline underline-offset-2"
+                    >
+                      {selectedCardIds.length === visibleCards.length
+                        ? 'Deseleccionar todas'
+                        : 'Seleccionar todas'}
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPickerSearch('');
+                      setPickerSelectedIds([]);
+                      setShowAddCardsModal(true);
+                    }}
+                    className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold text-xs px-3.5 py-1.5 rounded-xl transition"
+                  >
+                    + Agregar fichas creadas
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={selectedCardIds.length === 0 || bulkUpdatingFolder}
+                    onClick={() => handleBulkRemoveFromFolder(selectedCardIds)}
+                    title="Quitar fichas seleccionadas de esta carpeta"
+                    className="bg-zinc-950 hover:bg-red-500/15 disabled:opacity-35 disabled:pointer-events-none text-zinc-400 hover:text-red-400 border border-zinc-800 hover:border-red-500/30 text-xs px-3 py-1.5 rounded-xl transition inline-flex items-center gap-1.5"
+                  >
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 6h18" />
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                    </svg>
+                    <span>Quitar ({selectedCardIds.length})</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectionMode(false);
+                      setSelectedCardIds([]);
+                    }}
+                    title="Salir del modo seleccionados"
+                    className="text-xs text-zinc-500 hover:text-zinc-200 px-2 py-1.5"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
 
             <form
               onSubmit={handleCreateSingle}
@@ -941,7 +1044,7 @@ export default function AdminDashboard() {
             {visibleCards.length === 0 ? (
               <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-10 text-center">
                 <p className="text-zinc-400 text-sm">
-                  No hay fichas en esta vista todavía.
+                  No hay fichas en esta vista todavÃ­a.
                 </p>
               </div>
             ) : (
@@ -953,10 +1056,24 @@ export default function AdminDashboard() {
                   return (
                     <div
                       key={card.id}
-                      className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 md:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+                      className={`bg-zinc-900 border rounded-2xl p-4 md:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 transition ${
+                        currentFolderObj && selectionMode && selectedCardIds.includes(card.id)
+                          ? 'border-amber-500/70 bg-amber-500/5'
+                          : 'border-zinc-800'
+                      }`}
                     >
                       <div className="flex-1 space-y-3">
                         <div className="flex flex-wrap items-center gap-2.5">
+                          {currentFolderObj && selectionMode && (
+                            <input
+                              type="checkbox"
+                              checked={selectedCardIds.includes(card.id)}
+                              onChange={() => toggleCardSelection(card.id)}
+                              aria-label={`Seleccionar ficha ${card.id}`}
+                              className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+                            />
+                          )}
+
                           <span className="font-mono text-sm font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2.5 py-0.5 rounded-md">
                             #{card.id}
                           </span>
@@ -1012,6 +1129,22 @@ export default function AdminDashboard() {
                             />
                             {card.is_active ? 'Activa' : 'Pausada'}
                           </label>
+
+                          {currentFolderObj && selectionMode && (
+                            <button
+                              type="button"
+                              disabled={bulkUpdatingFolder}
+                              onClick={() => handleBulkRemoveFromFolder([card.id])}
+                              title="Quitar de esta carpeta"
+                              className="text-zinc-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition"
+                            >
+                              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M3 6h18" />
+                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                              </svg>
+                            </button>
+                          )}
                         </div>
 
                         <div className="flex gap-2">
@@ -1025,7 +1158,7 @@ export default function AdminDashboard() {
                                 e.target.value
                               )
                             }
-                            placeholder="Pega aquí el link de Google Reviews, menú o red social..."
+                            placeholder="Pega aquÃ­ el link de Google Reviews, menÃº o red social..."
                             className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500"
                           />
                           <button
@@ -1051,7 +1184,7 @@ export default function AdminDashboard() {
                             <option value="">+ Agregar a una carpeta...</option>
                             {folders.map((f) => (
                               <option key={f.id} value={f.id}>
-                                📁 {f.name}
+                                ðŸ“ {f.name}
                               </option>
                             ))}
                           </select>
@@ -1083,11 +1216,11 @@ export default function AdminDashboard() {
                               title="Modificar conteos QR / NFC"
                               className="text-xs text-zinc-400 hover:text-amber-400"
                             >
-                              ⚙️
+                              âš™ï¸
                             </button>
                           </div>
                           <p className="text-[11px] text-zinc-500">
-                            {card.stats.qr} QR · {card.stats.nfc} NFC
+                            {card.stats.qr} QR Â· {card.stats.nfc} NFC
                           </p>
                         </div>
 
@@ -1096,7 +1229,7 @@ export default function AdminDashboard() {
                             <button
                               onClick={() => handleDownloadSvg(card.id)}
                               className="bg-zinc-800 hover:bg-zinc-700 text-xs px-2.5 py-1.5 rounded-lg border border-zinc-700 transition"
-                              title="Descargar QR vectorial para impresión"
+                              title="Descargar QR vectorial para impresiÃ³n"
                             >
                               QR (.svg)
                             </button>
@@ -1146,7 +1279,7 @@ export default function AdminDashboard() {
                 onClick={() => setShowBatchModal(false)}
                 className="text-zinc-400 hover:text-zinc-200 text-sm"
               >
-                ✕
+                âœ•
               </button>
             </div>
 
@@ -1167,13 +1300,13 @@ export default function AdminDashboard() {
 
             <div>
               <label className="block text-xs text-zinc-400 mb-1">
-                Nombre del lote (se creará su carpeta automáticamente)
+                Nombre del lote (se crearÃ¡ su carpeta automÃ¡ticamente)
               </label>
               <input
                 type="text"
                 value={batchName}
                 onChange={(e) => setBatchName(e.target.value)}
-                placeholder="Ej. Cafetería San José o Lote Centro"
+                placeholder="Ej. CafeterÃ­a San JosÃ© o Lote Centro"
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-amber-500"
                 required
               />
@@ -1204,7 +1337,7 @@ export default function AdminDashboard() {
                 onClick={() => setShowNewFolderModal(false)}
                 className="text-zinc-400 hover:text-zinc-200 text-sm"
               >
-                ✕
+                âœ•
               </button>
             </div>
             <input
@@ -1235,14 +1368,14 @@ export default function AdminDashboard() {
           >
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold">
-                Modificar conteos — Ficha #{editingCountsCard.id}
+                Modificar conteos â€” Ficha #{editingCountsCard.id}
               </h2>
               <button
                 type="button"
                 onClick={() => setEditingCountsCard(null)}
                 className="text-zinc-400 hover:text-zinc-200 text-sm"
               >
-                ✕
+                âœ•
               </button>
             </div>
 
@@ -1260,7 +1393,7 @@ export default function AdminDashboard() {
               >
                 {cards.map((c) => (
                   <option key={c.id} value={c.id}>
-                    #{c.id} — {c.client_name}
+                    #{c.id} â€” {c.client_name}
                   </option>
                 ))}
               </select>
@@ -1316,7 +1449,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* MODAL 4: CONFIGURACIÓN */}
+      {/* MODAL 4: CONFIGURACIÃ“N */}
       {showSettingsModal && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <form
@@ -1324,19 +1457,19 @@ export default function AdminDashboard() {
             className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-2xl w-full p-6 space-y-6 shadow-2xl my-8"
           >
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <h2 className="text-lg font-bold">⚙️ Configuración del Sistema</h2>
+              <h2 className="text-lg font-bold">âš™ï¸ ConfiguraciÃ³n del Sistema</h2>
               <button
                 type="button"
                 onClick={() => setShowSettingsModal(false)}
                 className="text-zinc-400 hover:text-zinc-200 text-sm"
               >
-                Cerrar ✕
+                Cerrar âœ•
               </button>
             </div>
 
             <div className="space-y-2.5">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-amber-400">
-                1. Tipos de tarjeta (Categorías)
+                1. Tipos de tarjeta (CategorÃ­as)
               </h3>
               <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
                 {editCategories.map((cat, idx) => (
@@ -1424,28 +1557,28 @@ export default function AdminDashboard() {
 
             <div className="space-y-2.5 pt-3 border-t border-zinc-800">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-amber-400">
-                3. Cambiar contraseña de acceso
+                3. Cambiar contraseÃ±a de acceso
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
                 <input
                   type="password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Contraseña actual"
+                  placeholder="ContraseÃ±a actual"
                   className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs"
                 />
                 <input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Nueva contraseña"
+                  placeholder="Nueva contraseÃ±a"
                   className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs"
                 />
                 <input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Repetir nueva contraseña"
+                  placeholder="Repetir nueva contraseÃ±a"
                   className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs"
                 />
               </div>
@@ -1464,7 +1597,7 @@ export default function AdminDashboard() {
                 disabled={savingSettings}
                 className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold text-xs px-5 py-2.5 rounded-xl"
               >
-                {savingSettings ? 'Guardando...' : 'Guardar configuración'}
+                {savingSettings ? 'Guardando...' : 'Guardar configuraciÃ³n'}
               </button>
             </div>
           </form>
@@ -1479,6 +1612,148 @@ export default function AdminDashboard() {
           tarjetas={cards.filter((c) => c.folder_id === currentFolderObj.id)}
           baseUrl={baseUrl}
         />
+      )}
+      {showAddCardsModal && currentFolderObj && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div>
+                <h2 className="text-base font-bold">
+                  Agregar fichas a "{currentFolderObj.name}"
+                </h2>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Marca las fichas que quieras incluir · Seleccionados:{' '}
+                  <span className="text-amber-400 font-semibold">
+                    {pickerSelectedIds.length}
+                  </span>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddCardsModal(false)}
+                className="text-zinc-400 hover:text-zinc-200 text-xs px-2.5 py-1.5 rounded-lg bg-zinc-800"
+              >
+                Cerrar ✕
+              </button>
+            </div>
+
+            <input
+              type="text"
+              autoFocus
+              value={pickerSearch}
+              onChange={(e) => setPickerSearch(e.target.value)}
+              placeholder="Buscar por #ID, nombre de negocio o enlace..."
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-amber-500"
+            />
+
+            <div className="max-h-72 overflow-y-auto space-y-1.5 pr-1">
+              {cards
+                .filter((c) => {
+                  const q = pickerSearch.trim().toLowerCase();
+                  if (!q) return true;
+                  return (
+                    c.id.toLowerCase().includes(q) ||
+                    (c.client_name || '').toLowerCase().includes(q) ||
+                    (c.target_url || '').toLowerCase().includes(q)
+                  );
+                })
+                .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
+                .map((c) => {
+                  const alreadyHere = c.folder_id === currentFolderObj.id;
+                  const isChecked = pickerSelectedIds.includes(c.id);
+                  const otherFolder =
+                    c.folder_id && !alreadyHere
+                      ? folders.find((f) => f.id === c.folder_id)?.name
+                      : null;
+
+                  return (
+                    <div
+                      key={c.id}
+                      onClick={() => {
+                        if (!alreadyHere) togglePickerSelection(c.id);
+                      }}
+                      className={`flex items-center justify-between gap-3 px-3 py-2 rounded-xl border text-xs transition ${
+                        alreadyHere
+                          ? 'bg-zinc-950/60 border-zinc-800/80 text-zinc-500'
+                          : isChecked
+                          ? 'bg-amber-500/10 border-amber-500/50 text-zinc-100 cursor-pointer'
+                          : 'bg-zinc-950 border-zinc-800 hover:border-zinc-700 text-zinc-200 cursor-pointer'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={alreadyHere || isChecked}
+                          disabled={alreadyHere}
+                          onChange={() => {}}
+                          className="accent-amber-500 shrink-0"
+                        />
+                        <span className="font-mono font-bold text-amber-400 shrink-0">
+                          #{c.id}
+                        </span>
+                        <span className="truncate font-medium">
+                          {c.client_name || 'Sin asignar'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        {alreadyHere ? (
+                          <>
+                            <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded">
+                              En esta carpeta
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleBulkRemoveFromFolder([c.id]);
+                              }}
+                              title="Quitar de esta carpeta"
+                              className="text-zinc-500 hover:text-red-400 p-1 rounded hover:bg-red-500/10 transition"
+                            >
+                              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M3 6h18" />
+                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                              </svg>
+                            </button>
+                          </>
+                        ) : otherFolder ? (
+                          <span className="text-[10px] text-zinc-500">
+                            En: {otherFolder}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-zinc-500">
+                            {c.category}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800">
+              <button
+                type="button"
+                onClick={() => setShowAddCardsModal(false)}
+                className="px-4 py-2 text-xs text-zinc-400 hover:text-zinc-200"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={pickerSelectedIds.length === 0 || bulkUpdatingFolder}
+                onClick={handleBulkAddToFolder}
+                className="bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-zinc-950 font-semibold text-xs px-4 py-2 rounded-xl transition"
+              >
+                {bulkUpdatingFolder
+                  ? 'Agregando...'
+                  : `Agregar seleccionados (${pickerSelectedIds.length})`}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
