@@ -4,41 +4,50 @@ import { useState } from 'react';
 import QRCode from 'qrcode';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
-// Validación estricta: solo lotes ya creados donde el 100% de tarjetas sean "Reseñas Google"
+// Validaci?n estricta: solo lotes ya creados donde el 100% de tarjetas sean "Rese?as Google"
 export function validarLoteResenasGoogle(lote, tarjetasDelLote) {
   if (!lote || !lote.id || !Array.isArray(tarjetasDelLote) || tarjetasDelLote.length === 0) {
     return {
       permitido: false,
-      motivo: 'Disponible únicamente dentro de un lote ya creado con tarjetas.',
+      motivo: 'Disponible ?nicamente dentro de un lote ya creado con tarjetas.',
     };
   }
 
   const noGoogle = tarjetasDelLote.filter((t) => {
     const cat = String(t.category ?? t.categoria ?? '').trim().toLowerCase();
-    return cat !== 'reseñas google';
+    return cat !== 'rese?as google';
   });
 
   if (noGoogle.length > 0) {
     return {
       permitido: false,
-      motivo: `Bloqueado: ${noGoogle.length} tarjeta(s) de este lote no están marcadas como "Reseñas Google".`,
+      motivo: `Bloqueado: ${noGoogle.length} tarjeta(s) de este lote no est?n marcadas como "Rese?as Google".`,
     };
   }
 
   return { permitido: true, motivo: '' };
 }
 
-// Coordenadas exactas en puntos PDF (hoja 595.5 x 842.25 pt) para los 4 espacios de Reseñas google (1).pdf
-const SLOTS_PLANTILLA = [
+// Coordenadas base en puntos PDF para los 4 espacios de la hoja (ajustables con offsetX / offsetY)
+const BASE_SLOTS = [
   // 1. Superior Izquierda
-  { qrX: 192.5, qrY: 516.5, qrSize: 65.25, markX: 289.5, markY: 430.0 },
+  { qrX: 205.0, qrY: 454.0, qrSize: 46.0, markX: 286.0, markY: 434.0 },
   // 2. Superior Derecha
-  { qrX: 491.9, qrY: 516.5, qrSize: 65.25, markX: 587.5, markY: 430.0 },
+  { qrX: 504.4, qrY: 454.0, qrSize: 46.0, markX: 585.4, markY: 434.0 },
   // 3. Inferior Izquierda
-  { qrX: 192.5, qrY: 93.8,  qrSize: 65.25, markX: 289.5, markY: 9.0 },
+  { qrX: 205.0, qrY: 31.3,  qrSize: 46.0, markX: 286.0, markY: 11.3 },
   // 4. Inferior Derecha
-  { qrX: 491.9, qrY: 93.8,  qrSize: 65.25, markX: 587.5, markY: 9.0 },
+  { qrX: 504.4, qrY: 31.3,  qrSize: 46.0, markX: 585.4, markY: 11.3 },
 ];
+
+function getCardNumberLabel(card, fallbackIndex) {
+  const rawId = String(card?.id ?? card?.numero ?? '').trim();
+  if (rawId) {
+    const numOnly = rawId.replace(/^#/, '');
+    return /^d+$/.test(numOnly) ? numOnly.padStart(3, '0') : numOnly;
+  }
+  return String(fallbackIndex + 1).padStart(3, '0');
+}
 
 export default function BatchQrPdfModal({
   isOpen,
@@ -49,7 +58,9 @@ export default function BatchQrPdfModal({
 }) {
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState('');
-  const [markOpacity, setMarkOpacity] = useState(0.15); // 15% visibilidad por defecto
+  const [markOpacity, setMarkOpacity] = useState(0.35);
+  const [offsetX, setOffsetX] = useState(0);
+  const [offsetY, setOffsetY] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
 
   if (!isOpen) return null;
@@ -75,7 +86,7 @@ export default function BatchQrPdfModal({
       const templateRes = await fetch('/templates/resenas-google.pdf');
       if (!templateRes.ok) {
         throw new Error(
-          'No se encontró /public/templates/resenas-google.pdf en el proyecto.'
+          'No se encontr? /public/templates/resenas-google.pdf en el proyecto.'
         );
       }
 
@@ -93,11 +104,12 @@ export default function BatchQrPdfModal({
 
         for (let slotIdx = 0; slotIdx < slice.length; slotIdx++) {
           const card = slice[slotIdx];
-          const slot = SLOTS_PLANTILLA[slotIdx];
-          const cardId = String(card.id ?? card.numero ?? '').padStart(3, '0');
-          const qrTarget = `${baseUrl}/c/${cardId}?m=qr`;
+          const slot = BASE_SLOTS[slotIdx];
+          const globalIdx = pageIdx * 4 + slotIdx;
+          const cardCode = getCardNumberLabel(card, globalIdx);
+          const qrTarget = `${baseUrl}/c/${cardCode}?m=qr`;
 
-          // Generar QR PNG de alta resolución (600px) para impresión nítida
+          // Generar QR PNG de alta resoluci?n (600px) para impresi?n n?tida
           const qrDataUrl = await QRCode.toDataURL(qrTarget, {
             width: 600,
             margin: 0,
@@ -107,22 +119,36 @@ export default function BatchQrPdfModal({
 
           const qrImage = await outDoc.embedPng(qrDataUrl);
 
-          // Estampar QR dentro del marco redondeado
+          const finalQrX = slot.qrX + Number(offsetX || 0);
+          const finalQrY = slot.qrY + Number(offsetY || 0);
+
+          // Limpiar interior del cuadro de corchetes antes de estampar el QR
+          copiedPage.drawRectangle({
+            x: finalQrX - 1,
+            y: finalQrY - 1,
+            width: slot.qrSize + 2,
+            height: slot.qrSize + 2,
+            color: rgb(1, 1, 1),
+          });
+
+          // Estampar QR centrado dentro del marco de corchetes
           copiedPage.drawImage(qrImage, {
-            x: slot.qrX,
-            y: slot.qrY,
+            x: finalQrX,
+            y: finalQrY,
             width: slot.qrSize,
             height: slot.qrSize,
           });
 
-          // Estampar marca numérica poco visible (#001, #002...) en esquina inferior derecha
-          const label = `#${cardId}`;
-          const fontSize = 6.5;
+          // Registrar y estampar n?mero de ficha (#001, #002...) en la esquina inferior derecha
+          const label = `#${cardCode}`;
+          const fontSize = 7.5;
           const textWidth = font.widthOfTextAtSize(label, fontSize);
+          const markX = slot.markX + Number(offsetX || 0);
+          const markY = slot.markY + Number(offsetY || 0);
 
           copiedPage.drawText(label, {
-            x: slot.markX - textWidth,
-            y: slot.markY,
+            x: markX - textWidth,
+            y: markY,
             size: fontSize,
             font,
             color: rgb(0, 0, 0),
@@ -152,18 +178,19 @@ export default function BatchQrPdfModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl">
         <div className="flex items-start justify-between border-b border-zinc-800 pb-4">
           <div>
             <span className="text-[11px] font-semibold uppercase tracking-wider text-amber-400">
-              Impresión A4 (4 tarjetas por hoja)
+              Impresi?n A4 (4 tarjetas por hoja)
             </span>
             <h2 className="text-lg font-bold text-zinc-100 mt-0.5">
               {lote?.name ?? lote?.nombre}
             </h2>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="text-zinc-400 hover:text-zinc-100 text-xs px-2.5 py-1.5 rounded-lg bg-zinc-800"
           >
@@ -179,35 +206,68 @@ export default function BatchQrPdfModal({
           <div className="space-y-4">
             <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 space-y-1.5 text-xs text-zinc-300">
               <p>
-                • <strong>Tarjetas en el lote:</strong> {sortedCards.length} (100 % Reseñas Google)
+                ? <strong>Tarjetas en el lote:</strong> {sortedCards.length} (100 % Rese?as Google)
               </p>
               <p>
-                • <strong>Hojas A4 a generar:</strong> {totalHojas} página(s)
+                ? <strong>Hojas A4 a generar:</strong> {totalHojas} p?gina(s)
               </p>
               <p>
-                • <strong>Identificador interno:</strong> marca sutil <code>#001</code> en la esquina inferior derecha de cada tarjeta para emparejar tu chip NTAG213.
+                ? <strong>Registro de n?mero:</strong>{' '}
+                <code>#{getCardNumberLabel(sortedCards[0], 0)}</code>
+                {sortedCards.length > 1 && (
+                  <>
+                    {' '}a <code>#{getCardNumberLabel(sortedCards[sortedCards.length - 1], sortedCards.length - 1)}</code>
+                  </>
+                )}{' '}
+                estampado en cada tarjeta.
               </p>
             </div>
 
-            <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 space-y-2">
-              <div className="flex justify-between text-xs text-zinc-400">
-                <span>Visibilidad de la marca numérica</span>
-                <span className="text-amber-400 font-semibold">
-                  {Math.round(markOpacity * 100)}%
-                </span>
+            <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 space-y-3">
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs text-zinc-400">
+                  <span>Visibilidad del n?mero (#ID)</span>
+                  <span className="text-amber-400 font-semibold">
+                    {Math.round(markOpacity * 100)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.10"
+                  max="0.85"
+                  step="0.05"
+                  value={markOpacity}
+                  onChange={(e) => setMarkOpacity(Number(e.target.value))}
+                  className="w-full accent-amber-500"
+                />
               </div>
-              <input
-                type="range"
-                min="0.06"
-                max="0.35"
-                step="0.01"
-                value={markOpacity}
-                onChange={(e) => setMarkOpacity(Number(e.target.value))}
-                className="w-full accent-amber-500"
-              />
-              <p className="text-[11px] text-zinc-500">
-                Recomendado entre 12 % y 18 %: legible al armar el lote pero discreto para el cliente final.
-              </p>
+
+              <div className="grid grid-cols-2 gap-2.5 pt-1">
+                <div>
+                  <label className="block text-[11px] text-zinc-400 mb-1">
+                    Ajuste horizontal (pt)
+                  </label>
+                  <input
+                    type="number"
+                    step="1"
+                    value={offsetX}
+                    onChange={(e) => setOffsetX(Number(e.target.value))}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-zinc-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-zinc-400 mb-1">
+                    Ajuste vertical (pt)
+                  </label>
+                  <input
+                    type="number"
+                    step="1"
+                    value={offsetY}
+                    onChange={(e) => setOffsetY(Number(e.target.value))}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-zinc-100"
+                  />
+                </div>
+              </div>
             </div>
 
             {errorMsg && (
@@ -221,6 +281,7 @@ export default function BatchQrPdfModal({
             )}
 
             <button
+              type="button"
               onClick={handleGeneratePdf}
               disabled={generating}
               className="w-full bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-zinc-950 font-semibold text-sm py-2.5 rounded-xl transition"
