@@ -1,7 +1,8 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import QRCode from 'qrcode';
+import BatchQrPdfModal, { validarLoteResenasGoogle } from '@/components/BatchQrPdfModal';
 
 export default function AdminDashboard() {
   const [authenticated, setAuthenticated] = useState(null);
@@ -46,6 +47,7 @@ export default function AdminDashboard() {
 
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
 
   const [editingCountsCard, setEditingCountsCard] = useState(null);
   const [editQrValue, setEditQrValue] = useState(0);
@@ -856,6 +858,31 @@ export default function AdminDashboard() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
+                {currentFolderObj && (() => {
+                  const loteCards = cards.filter(
+                    (c) => c.folder_id === currentFolderObj.id
+                  );
+                  const check = validarLoteResenasGoogle(
+                    currentFolderObj,
+                    loteCards
+                  );
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => setPdfModalOpen(true)}
+                      disabled={!check.permitido}
+                      title={
+                        check.permitido
+                          ? 'Generar PDF del lote completo sobre la plantilla de Google'
+                          : check.motivo
+                      }
+                      className="bg-amber-500 hover:bg-amber-400 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:border-zinc-700 disabled:cursor-not-allowed text-zinc-950 font-semibold text-xs px-3.5 py-2 rounded-xl border border-transparent transition"
+                    >
+                      🖨️ Generar Lote QR (Google)
+                    </button>
+                  );
+                })()}
+
                 <select
                   value={filterCategory}
                   onChange={(e) => setFilterCategory(e.target.value)}
@@ -1442,6 +1469,16 @@ export default function AdminDashboard() {
             </div>
           </form>
         </div>
+      )}
+
+      {currentFolderObj && (
+        <BatchQrPdfModal
+          isOpen={pdfModalOpen}
+          onClose={() => setPdfModalOpen(false)}
+          lote={currentFolderObj}
+          tarjetas={cards.filter((c) => c.folder_id === currentFolderObj.id)}
+          baseUrl={baseUrl}
+        />
       )}
     </div>
   );
