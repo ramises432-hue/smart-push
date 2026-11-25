@@ -17,15 +17,15 @@ export default function AdminDashboard() {
     year: { total: 0, qr: 0, nfc: 0 },
   });
 
-  // Periodo individual dentro de cada recuadro de mÃ©trica ('week' | 'month' | 'year')
+  // Periodo individual dentro de cada recuadro de métrica ('week' | 'month' | 'year')
   const [usosPeriod, setUsosPeriod] = useState('month');
   const [qrPeriod, setQrPeriod] = useState('month');
   const [nfcPeriod, setNfcPeriod] = useState('month');
 
   const [settings, setSettings] = useState({
     whatsapp_template:
-      'Â¡Hola {cliente}! Te comparto el resumen mensual de tu cartel Smart Push (#{id}): este mes recibiÃ³ {total} interacciones ({qr} por cÃ³digo QR y {nfc} por toque NFC) directo hacia tu enlace.',
-    categories: ['ReseÃ±as Google', 'MenÃº Digital', 'Instagram', 'WhatsApp'],
+      '¡Hola {cliente}! Te comparto el resumen mensual de tu cartel Smart Push (#{id}): este mes recibió {total} interacciones ({qr} por código QR y {nfc} por toque NFC) directo hacia tu enlace.',
+    categories: ['Reseñas Google', 'Menú Digital', 'Instagram', 'WhatsApp'],
   });
 
   const [loading, setLoading] = useState(true);
@@ -126,7 +126,7 @@ export default function AdminDashboard() {
       setPassword('');
       fetchDashboard();
     } else {
-      setAuthError('ContraseÃ±a incorrecta');
+      setAuthError('Contraseña incorrecta');
     }
   };
 
@@ -198,7 +198,7 @@ export default function AdminDashboard() {
   const handleDeleteFolder = async (folder) => {
     if (
       !window.confirm(
-        `Â¿Eliminar la carpeta "${folder.name}"? Tus fichas no se borran, quedarÃ¡n en "Todas las Fichas".`
+        `¿Eliminar la carpeta "${folder.name}"? Tus fichas no se borran, quedarán en "Todas las Fichas".`
       )
     ) {
       return;
@@ -223,7 +223,7 @@ export default function AdminDashboard() {
         action: 'batch',
         quantity: batchQuantity,
         batch_name: batchName,
-        category: settings.categories[0] || 'ReseÃ±as Google',
+        category: settings.categories[0] || 'Reseñas Google',
       }),
     });
     const data = await res.json();
@@ -232,7 +232,7 @@ export default function AdminDashboard() {
       setShowBatchModal(false);
       setBatchName('');
       showToast(
-        `Lote creado (#${String(data.start).padStart(3, '0')} â€“ #${String(
+        `Lote creado (#${String(data.start).padStart(3, '0')} – #${String(
           data.end
         ).padStart(3, '0')})`
       );
@@ -255,7 +255,7 @@ export default function AdminDashboard() {
         id: newId,
         client_name: newClient,
         folder_id: targetFolder,
-        category: settings.categories[0] || 'ReseÃ±as Google',
+        category: settings.categories[0] || 'Reseñas Google',
       }),
     });
     if (res.ok) {
@@ -376,7 +376,7 @@ export default function AdminDashboard() {
   const handleSaveSettings = async (e) => {
     e.preventDefault();
     if (newPassword && newPassword !== confirmPassword) {
-      showToast('Las contraseÃ±as nuevas no coinciden');
+      showToast('Las contraseñas nuevas no coinciden');
       return;
     }
     setSavingSettings(true);
@@ -403,7 +403,7 @@ export default function AdminDashboard() {
       categories: editCategories,
     });
     setShowSettingsModal(false);
-    showToast('ConfiguraciÃ³n guardada');
+    showToast('Configuración guardada');
   };
 
   const formatWhatsappReport = (card) =>
@@ -472,13 +472,13 @@ export default function AdminDashboard() {
           </div>
           <div>
             <label className="block text-xs text-zinc-400 mb-1.5">
-              ContraseÃ±a de administrador
+              Contraseña de administrador
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+              placeholder="••••••••"
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-amber-500"
               required
             />
@@ -501,14 +501,14 @@ export default function AdminDashboard() {
   const inactiveCount = cards.length - activeCount;
 
   const getPeriodText = (p) =>
-    p === 'week' ? 'esta semana' : p === 'year' ? 'este aÃ±o' : 'este mes';
+    p === 'week' ? 'esta semana' : p === 'year' ? 'este año' : 'este mes';
 
   const renderPeriodTabs = (value, onChange) => (
     <div className="inline-flex bg-zinc-950 border border-zinc-800 rounded-lg p-0.5 mt-2.5">
       {[
         { id: 'week', label: 'Semana' },
         { id: 'month', label: 'Mes' },
-        { id: 'year', label: 'AÃ±o' },
+        { id: 'year', label: 'Año' },
       ].map((tab) => (
         <button
           key={tab.id}
@@ -552,7 +552,7 @@ export default function AdminDashboard() {
             <div>
               <h1 className="font-bold text-lg leading-none">Smart Push</h1>
               <p className="text-xs text-zinc-400 mt-1">
-                GestiÃ³n dinÃ¡mica QR + NFC
+                Gestión dinámica QR + NFC
               </p>
             </div>
           </button>
@@ -562,7 +562,7 @@ export default function AdminDashboard() {
               onClick={openSettingsModal}
               className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-xs font-medium px-3.5 py-2 rounded-lg border border-zinc-700 transition"
             >
-              âš™ï¸ ConfiguraciÃ³n
+              ⚙️ Configuración
             </button>
             <button
               onClick={() => setShowBatchModal(true)}
@@ -581,7 +581,7 @@ export default function AdminDashboard() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 pt-6 space-y-6">
-        {/* RECUADROS DE MÃ‰TRICAS GLOBALES */}
+        {/* RECUADROS DE MÉTRICAS GLOBALES */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
           {/* Cuadro 1: Tarjetas activas y no activadas */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col justify-between">
@@ -604,7 +604,7 @@ export default function AdminDashboard() {
             </p>
           </div>
 
-          {/* Cuadro 2: Usos con selector Semana / Mes / AÃ±o dentro del cuadro */}
+          {/* Cuadro 2: Usos con selector Semana / Mes / Año dentro del cuadro */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col justify-between">
             <div>
               <p className="text-xs text-zinc-400">
@@ -617,7 +617,7 @@ export default function AdminDashboard() {
             <div>{renderPeriodTabs(usosPeriod, setUsosPeriod)}</div>
           </div>
 
-          {/* Cuadro 3: Escaneos QR con selector Semana / Mes / AÃ±o e Ã­cono de engranaje */}
+          {/* Cuadro 3: Escaneos QR con selector Semana / Mes / Año e ícono de engranaje */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col justify-between">
             <div className="flex items-start justify-between">
               <div>
@@ -635,13 +635,13 @@ export default function AdminDashboard() {
                 title="Modificar conteos de escaneos QR"
                 className="text-xs text-zinc-400 hover:text-amber-400 bg-zinc-950 border border-zinc-800 px-2 py-1 rounded-md transition"
               >
-                âš™ï¸
+                ⚙️
               </button>
             </div>
             <div>{renderPeriodTabs(qrPeriod, setQrPeriod)}</div>
           </div>
 
-          {/* Cuadro 4: Toques NFC con selector Semana / Mes / AÃ±o e Ã­cono de engranaje */}
+          {/* Cuadro 4: Toques NFC con selector Semana / Mes / Año e ícono de engranaje */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col justify-between">
             <div className="flex items-start justify-between">
               <div>
@@ -659,20 +659,20 @@ export default function AdminDashboard() {
                 title="Modificar conteos de toques NFC"
                 className="text-xs text-zinc-400 hover:text-amber-400 bg-zinc-950 border border-zinc-800 px-2 py-1 rounded-md transition"
               >
-                âš™ï¸
+                ⚙️
               </button>
             </div>
             <div>{renderPeriodTabs(nfcPeriod, setNfcPeriod)}</div>
           </div>
         </section>
 
-        {/* BARRA DE BÃšSQUEDA PERMANENTE */}
+        {/* BARRA DE BÚSQUEDA PERMANENTE */}
         <div className="relative">
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="ðŸ” Barra de bÃºsqueda: escribe #ID, nombre de local o URL..."
+            placeholder="🔍 Barra de búsqueda: escribe #ID, nombre de local o URL..."
             className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-amber-500 shadow-sm"
           />
           {search && (
@@ -680,12 +680,12 @@ export default function AdminDashboard() {
               onClick={() => setSearch('')}
               className="absolute right-4 top-3 text-xs text-zinc-400 hover:text-zinc-200"
             >
-              Limpiar âœ•
+              Limpiar ✕
             </button>
           )}
         </div>
 
-        {/* VISTA PORTADA: CUADRÃCULA DE CARPETAS */}
+        {/* VISTA PORTADA: CUADRÍCULA DE CARPETAS */}
         {activeView === 'HOME' && !isSearchingFromHome ? (
           <section className="space-y-3">
             <div className="flex items-center justify-between">
@@ -706,7 +706,7 @@ export default function AdminDashboard() {
                   className="bg-zinc-900 hover:bg-zinc-900/80 border border-zinc-800 hover:border-amber-500/60 rounded-2xl p-5 text-left transition flex flex-col justify-between min-h-[155px] group"
                 >
                   <div className="flex items-start justify-between">
-                    <span className="text-2xl">ðŸ—‚ï¸</span>
+                    <span className="text-2xl">🗂️</span>
                     <span className="text-xs font-mono bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
                       {cards.length} fichas
                     </span>
@@ -741,7 +741,7 @@ export default function AdminDashboard() {
                     >
                       <div>
                         <div className="flex items-start justify-between gap-2">
-                          <span className="text-2xl">ðŸ“</span>
+                          <span className="text-2xl">📁</span>
                           <span className="text-xs font-mono bg-zinc-800 text-zinc-200 px-2.5 py-0.5 rounded-full">
                             No. de fichas: {folderCards.length}
                           </span>
@@ -791,7 +791,7 @@ export default function AdminDashboard() {
                                 title="Modificar nombre de la carpeta"
                                 className="text-xs text-zinc-500 hover:text-amber-400 px-1"
                               >
-                                âš™ï¸
+                                ⚙️
                               </button>
                             </div>
                           )}
@@ -855,14 +855,14 @@ export default function AdminDashboard() {
                   }}
                   className="bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold px-3 py-2 rounded-xl border border-zinc-700 transition"
                 >
-                  â† Carpetas
+                  ← Carpetas
                 </button>
                 <h2 className="font-bold text-base">
                   {isSearchingFromHome
-                    ? `Resultados de bÃºsqueda (${visibleCards.length})`
+                    ? `Resultados de búsqueda (${visibleCards.length})`
                     : activeView === 'ALL'
                     ? `Todas las Fichas (${visibleCards.length})`
-                    : `ðŸ“ ${currentFolderObj?.name || 'Carpeta'} (${
+                    : `📁 ${currentFolderObj?.name || 'Carpeta'} (${
                         visibleCards.length
                       })`}
                 </h2>
@@ -913,7 +913,7 @@ export default function AdminDashboard() {
                       }
                       className="bg-amber-500 hover:bg-amber-400 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:border-zinc-700 disabled:cursor-not-allowed text-zinc-950 font-semibold text-xs px-3.5 py-2 rounded-xl border border-transparent transition"
                     >
-                      ðŸ–¨ï¸ Generar Lote QR (Google)
+                      🖨️ Generar Lote QR (Google)
                     </button>
                   );
                 })()}
@@ -936,13 +936,13 @@ export default function AdminDashboard() {
                   onChange={(e) => setSortBy(e.target.value)}
                   className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-amber-400 font-medium focus:outline-none focus:border-amber-500"
                 >
-                  <option value="id_asc">Orden: # NÃºmero (001â†’999)</option>
-                  <option value="id_desc">Orden: # NÃºmero (999â†’001)</option>
-                  <option value="date_desc">Fecha/Hora: MÃ¡s recientes</option>
-                  <option value="date_asc">Fecha/Hora: MÃ¡s antiguas</option>
-                  <option value="client_asc">Local (A â†’ Z)</option>
+                  <option value="id_asc">Orden: # Número (001→999)</option>
+                  <option value="id_desc">Orden: # Número (999→001)</option>
+                  <option value="date_desc">Fecha/Hora: Más recientes</option>
+                  <option value="date_asc">Fecha/Hora: Más antiguas</option>
+                  <option value="client_asc">Local (A → Z)</option>
                   <option value="category_asc">Tipo de tarjeta</option>
-                  <option value="usage_desc">MÃ¡s usos (Mes)</option>
+                  <option value="usage_desc">Más usos (Mes)</option>
                 </select>
               </div>
             </div>
