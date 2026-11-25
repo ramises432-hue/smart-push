@@ -49,9 +49,7 @@ export default function AdminDashboard() {
   const [newFolderName, setNewFolderName] = useState('');
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedCardIds, setSelectedCardIds] = useState([]);
-  const [showAddCardsModal, setShowAddCardsModal] = useState(false);
-  const [pickerSearch, setPickerSearch] = useState('');
-  const [pickerSelectedIds, setPickerSelectedIds] = useState([]);
+  const [visibleLimit, setVisibleLimit] = useState(50);
   const [bulkUpdatingFolder, setBulkUpdatingFolder] = useState(false);
   const [targetMoveFolderId, setTargetMoveFolderId] = useState('');
   const [newInlineFolderName, setNewInlineFolderName] = useState('');
@@ -114,6 +112,9 @@ export default function AdminDashboard() {
   useEffect(() => {
     setSelectionMode(false);
     setSelectedCardIds([]);
+    setTargetMoveFolderId('');
+    setNewInlineFolderName('');
+    setVisibleLimit(50);
   }, [activeView]);
 
   const handleLogin = async (e) => {
@@ -292,6 +293,106 @@ export default function AdminDashboard() {
         const fname = folders.find((f) => f.id === normalized)?.name || 'carpeta';
         showToast(`Ficha #${cardId} agregada a "${fname}"`);
       }
+    }
+  };
+
+  const toggleCardSelection = (cardId) => {
+    setSelectedCardIds((prev) =>
+      prev.includes(cardId) ? prev.filter((id) => id !== cardId) : [...prev, cardId]
+    );
+  };
+
+  const handleMoveSelectedToFolder = async () => {
+    if (!targetMoveFolderId || selectedCardIds.length === 0) return;
+    const creatingNew = targetMoveFolderId === '__NEW__';
+    const cleanName = newInlineFolderName.trim();
+    if (creatingNew && !cleanName) {
+      showToast('Escribe el nombre de la nueva carpeta');
+      return;
+    }
+
+    setBulkUpdatingFolder(true);
+    const ids = [...selectedCardIds];
+    let destId = targetMoveFolderId;
+    let destName = folders.find((f) => f.id === destId)?.name || 'carpeta';
+
+    try {
+      if (creatingNew) {
+        const fRes = await fetch('/api/folders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: cleanName }),
+        });
+        const fData = await fRes.json();
+        if (!fRes.ok || !fData.folder) {
+          throw new Error(fData.error || 'No se pudo crear la carpeta');
+        }
+        destId = fData.folder.id;
+        destName = fData.folder.name;
+        setFolders((prev) => [...prev, fData.folder]);
+      }
+
+      const res = await fetch('/api/cards', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'bulk_folder',
+          ids,
+          folder_id: destId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al mover fichas');
+      }
+
+      setCards((prev) =>
+        prev.map((c) => (ids.includes(c.id) ? { ...c, folder_id: destId } : c))
+      );
+      setSelectedCardIds([]);
+      setTargetMoveFolderId('');
+      setNewInlineFolderName('');
+      showToast(
+        creatingNew
+          ? `Carpeta "${destName}" creada con ${ids.length} ficha(s)`
+          : `${ids.length} ficha(s) movidas a "${destName}"`
+      );
+    } catch (err) {
+      showToast(`Error: ${err.message}`);
+    } finally {
+      setBulkUpdatingFolder(false);
+    }
+  };
+
+  const handleBulkRemoveFromFolder = async (idsToRemove) => {
+    if (!idsToRemove || idsToRemove.length === 0) return;
+    setBulkUpdatingFolder(true);
+
+    setCards((prev) =>
+      prev.map((c) => (idsToRemove.includes(c.id) ? { ...c, folder_id: null } : c))
+    );
+    setSelectedCardIds((prev) => prev.filter((id) => !idsToRemove.includes(id)));
+
+    const res = await fetch('/api/cards', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'bulk_folder',
+        ids: idsToRemove,
+        folder_id: null,
+      }),
+    }).catch(() => ({ ok: false }));
+
+    setBulkUpdatingFolder(false);
+    if (!res.ok) {
+      showToast('Error al quitar fichas de la carpeta');
+      fetchDashboard();
+    } else {
+      showToast(
+        idsToRemove.length === 1
+          ? `Ficha #${idsToRemove[0]} quitada de la carpeta`
+          : `${idsToRemove.length} fichas quitadas de la carpeta`
+      );
     }
   };
 
@@ -1056,18 +1157,6 @@ export default function AdminDashboard() {
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      setPickerSearch('');
-                      setPickerSelectedIds([]);
-                      setShowAddCardsModal(true);
-                    }}
-                    className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold text-xs px-3.5 py-1.5 rounded-xl transition"
-                  >
-                    + Agregar fichas creadas
-                  </button>
-
-                  <button
-                    type="button"
                     disabled={selectedCardIds.length === 0 || bulkUpdatingFolder}
                     onClick={() => handleBulkRemoveFromFolder(selectedCardIds)}
                     title="Quitar fichas seleccionadas de esta carpeta"
@@ -1130,7 +1219,7 @@ export default function AdminDashboard() {
               </div>
             ) : (
               <div className="space-y-3">
-                {visibleCards.map((card) => {
+                {visibleCards.slice(0, visibleLimit).map((card) => {
                   const nfcLink = `${baseUrl}/c/${card.id}?m=nfc`;
                   const whatsappReport = formatWhatsappReport(card);
 
@@ -1340,6 +1429,17 @@ export default function AdminDashboard() {
                     </div>
                   );
                 })}
+                {visibleCards.length > visibleLimit && (
+                  <div className="pt-2 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setVisibleLimit((prev) => prev + 50)}
+                      className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs font-semibold text-amber-400 px-5 py-2.5 rounded-xl transition"
+                    >
+                      Mostrar m?s fichas ({visibleLimit} de {visibleCards.length})
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </section>
