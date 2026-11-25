@@ -53,6 +53,7 @@ export default function AdminDashboard() {
   const [pickerSearch, setPickerSearch] = useState('');
   const [pickerSelectedIds, setPickerSelectedIds] = useState([]);
   const [bulkUpdatingFolder, setBulkUpdatingFolder] = useState(false);
+  const [targetMoveFolderId, setTargetMoveFolderId] = useState('');
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
 
   const [editingCountsCard, setEditingCountsCard] = useState(null);
@@ -869,7 +870,7 @@ export default function AdminDashboard() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                {currentFolderObj && (
+                {(currentFolderObj || activeView === 'ALL') && (
                   <button
                     type="button"
                     onClick={() => {
@@ -946,6 +947,74 @@ export default function AdminDashboard() {
                 </select>
               </div>
             </div>
+
+            {activeView === 'ALL' && selectionMode && (
+              <div className="bg-zinc-900/95 border border-amber-500/40 rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-lg">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
+                    Seleccionados: {selectedCardIds.length}
+                  </span>
+                  {visibleCards.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSelectedCardIds(
+                          selectedCardIds.length === visibleCards.length
+                            ? []
+                            : visibleCards.map((c) => c.id)
+                        )
+                      }
+                      className="text-[11px] text-zinc-400 hover:text-zinc-200 underline underline-offset-2"
+                    >
+                      {selectedCardIds.length === visibleCards.length
+                        ? 'Deseleccionar todas'
+                        : 'Seleccionar todas'}
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    value={targetMoveFolderId}
+                    onChange={(e) => setTargetMoveFolderId(e.target.value)}
+                    className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-amber-500"
+                  >
+                    <option value="">Elegir carpeta destino...</option>
+                    {folders.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        📁 {f.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <button
+                    type="button"
+                    disabled={
+                      selectedCardIds.length === 0 ||
+                      !targetMoveFolderId ||
+                      bulkUpdatingFolder
+                    }
+                    onClick={handleMoveSelectedToFolder}
+                    className="bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-zinc-950 font-semibold text-xs px-3.5 py-1.5 rounded-xl transition"
+                  >
+                    {bulkUpdatingFolder
+                      ? 'Agregando...'
+                      : `Agregar a carpeta (${selectedCardIds.length})`}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectionMode(false);
+                      setSelectedCardIds([]);
+                    }}
+                    className="text-xs text-zinc-500 hover:text-zinc-200 px-2 py-1.5"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
 
             {currentFolderObj && selectionMode && (
               <div className="bg-zinc-900/95 border border-amber-500/40 rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-lg">
@@ -1057,14 +1126,14 @@ export default function AdminDashboard() {
                     <div
                       key={card.id}
                       className={`bg-zinc-900 border rounded-2xl p-4 md:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 transition ${
-                        currentFolderObj && selectionMode && selectedCardIds.includes(card.id)
+                        (currentFolderObj || activeView === 'ALL') && selectionMode && selectedCardIds.includes(card.id)
                           ? 'border-amber-500/70 bg-amber-500/5'
                           : 'border-zinc-800'
                       }`}
                     >
                       <div className="flex-1 space-y-3">
                         <div className="flex flex-wrap items-center gap-2.5">
-                          {currentFolderObj && selectionMode && (
+                          {(currentFolderObj || activeView === 'ALL') && selectionMode && (
                             <input
                               type="checkbox"
                               checked={selectedCardIds.includes(card.id)}
