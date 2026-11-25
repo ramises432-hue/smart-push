@@ -1113,7 +1113,7 @@ export default function AdminDashboard() {
             {visibleCards.length === 0 ? (
               <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-10 text-center">
                 <p className="text-zinc-400 text-sm">
-                  No hay fichas en esta vista todavÃ­a.
+                  No hay fichas en esta vista todavía.
                 </p>
               </div>
             ) : (
@@ -1227,7 +1227,7 @@ export default function AdminDashboard() {
                                 e.target.value
                               )
                             }
-                            placeholder="Pega aquÃ­ el link de Google Reviews, menÃº o red social..."
+                            placeholder="Pega aquí el link de Google Reviews, menú o red social..."
                             className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500"
                           />
                           <button
@@ -1253,7 +1253,7 @@ export default function AdminDashboard() {
                             <option value="">+ Agregar a una carpeta...</option>
                             {folders.map((f) => (
                               <option key={f.id} value={f.id}>
-                                ðŸ“ {f.name}
+                                📁 {f.name}
                               </option>
                             ))}
                           </select>
@@ -1285,11 +1285,11 @@ export default function AdminDashboard() {
                               title="Modificar conteos QR / NFC"
                               className="text-xs text-zinc-400 hover:text-amber-400"
                             >
-                              âš™ï¸
+                              ⚙️
                             </button>
                           </div>
                           <p className="text-[11px] text-zinc-500">
-                            {card.stats.qr} QR Â· {card.stats.nfc} NFC
+                            {card.stats.qr} QR · {card.stats.nfc} NFC
                           </p>
                         </div>
 
@@ -1298,7 +1298,7 @@ export default function AdminDashboard() {
                             <button
                               onClick={() => handleDownloadSvg(card.id)}
                               className="bg-zinc-800 hover:bg-zinc-700 text-xs px-2.5 py-1.5 rounded-lg border border-zinc-700 transition"
-                              title="Descargar QR vectorial para impresiÃ³n"
+                              title="Descargar QR vectorial para impresión"
                             >
                               QR (.svg)
                             </button>
@@ -1348,7 +1348,7 @@ export default function AdminDashboard() {
                 onClick={() => setShowBatchModal(false)}
                 className="text-zinc-400 hover:text-zinc-200 text-sm"
               >
-                âœ•
+                ✕
               </button>
             </div>
 
@@ -1369,13 +1369,13 @@ export default function AdminDashboard() {
 
             <div>
               <label className="block text-xs text-zinc-400 mb-1">
-                Nombre del lote (se crearÃ¡ su carpeta automÃ¡ticamente)
+                Nombre del lote (se creará su carpeta automáticamente)
               </label>
               <input
                 type="text"
                 value={batchName}
                 onChange={(e) => setBatchName(e.target.value)}
-                placeholder="Ej. CafeterÃ­a San JosÃ© o Lote Centro"
+                placeholder="Ej. Cafetería San José o Lote Centro"
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-amber-500"
                 required
               />
@@ -1406,7 +1406,7 @@ export default function AdminDashboard() {
                 onClick={() => setShowNewFolderModal(false)}
                 className="text-zinc-400 hover:text-zinc-200 text-sm"
               >
-                âœ•
+                ✕
               </button>
             </div>
             <input
@@ -1437,14 +1437,14 @@ export default function AdminDashboard() {
           >
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold">
-                Modificar conteos â€” Ficha #{editingCountsCard.id}
+                Modificar conteos — Ficha #{editingCountsCard.id}
               </h2>
               <button
                 type="button"
                 onClick={() => setEditingCountsCard(null)}
                 className="text-zinc-400 hover:text-zinc-200 text-sm"
               >
-                âœ•
+                ✕
               </button>
             </div>
 
@@ -1462,7 +1462,7 @@ export default function AdminDashboard() {
               >
                 {cards.map((c) => (
                   <option key={c.id} value={c.id}>
-                    #{c.id} â€” {c.client_name}
+                    #{c.id} — {c.client_name}
                   </option>
                 ))}
               </select>
@@ -1518,7 +1518,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* MODAL 4: CONFIGURACIÃ“N */}
+      {/* MODAL 4: CONFIGURACIÓN */}
       {showSettingsModal && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <form
@@ -1526,19 +1526,19 @@ export default function AdminDashboard() {
             className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-2xl w-full p-6 space-y-6 shadow-2xl my-8"
           >
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <h2 className="text-lg font-bold">âš™ï¸ ConfiguraciÃ³n del Sistema</h2>
+              <h2 className="text-lg font-bold">⚙️ Configuración del Sistema</h2>
               <button
                 type="button"
                 onClick={() => setShowSettingsModal(false)}
                 className="text-zinc-400 hover:text-zinc-200 text-sm"
               >
-                Cerrar âœ•
+                Cerrar ✕
               </button>
             </div>
 
             <div className="space-y-2.5">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-amber-400">
-                1. Tipos de tarjeta (CategorÃ­as)
+                1. Tipos de tarjeta (Categorías)
               </h3>
               <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
                 {editCategories.map((cat, idx) => (
@@ -1626,28 +1626,28 @@ export default function AdminDashboard() {
 
             <div className="space-y-2.5 pt-3 border-t border-zinc-800">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-amber-400">
-                3. Cambiar contraseÃ±a de acceso
+                3. Cambiar contraseña de acceso
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
                 <input
                   type="password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="ContraseÃ±a actual"
+                  placeholder="Contraseña actual"
                   className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs"
                 />
                 <input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Nueva contraseÃ±a"
+                  placeholder="Nueva contraseña"
                   className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs"
                 />
                 <input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Repetir nueva contraseÃ±a"
+                  placeholder="Repetir nueva contraseña"
                   className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs"
                 />
               </div>
@@ -1666,7 +1666,7 @@ export default function AdminDashboard() {
                 disabled={savingSettings}
                 className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold text-xs px-5 py-2.5 rounded-xl"
               >
-                {savingSettings ? 'Guardando...' : 'Guardar configuraciÃ³n'}
+                {savingSettings ? 'Guardando...' : 'Guardar configuración'}
               </button>
             </div>
           </form>

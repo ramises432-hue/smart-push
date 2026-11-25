@@ -242,6 +242,21 @@ export async function PATCH(request) {
       return NextResponse.json({ ok: true });
     }
 
+    if (body.action === 'bulk_folder') {
+      const ids = Array.isArray(body.ids) ? body.ids.map(String) : [];
+      if (ids.length === 0) {
+        return NextResponse.json({ ok: true });
+      }
+      const nextFolderId = body.folder_id || null;
+      const { error } = await supabase
+        .from('cards')
+        .update({ folder_id: nextFolderId })
+        .in('id', ids);
+
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ ok: true, count: ids.length });
+    }
+
     const { id } = body;
     const updates = {};
     if ('client_name' in body) updates.client_name = body.client_name;
