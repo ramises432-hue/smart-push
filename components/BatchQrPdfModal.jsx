@@ -13,8 +13,7 @@ function normalizeCategory(val) {
 }
 
 function isGoogleReviewCategory(val) {
-  const norm = normalizeCategory(val);
-  return norm.includes('google');
+  return normalizeCategory(val).includes('google');
 }
 
 // Validación estricta: solo lotes ya creados donde el 100% de tarjetas sean de Reseñas Google
@@ -41,16 +40,17 @@ export function validarLoteResenasGoogle(lote, tarjetasDelLote) {
   return { permitido: true, motivo: '' };
 }
 
-// Coordenadas en puntos PDF (Y desde abajo) centradas dentro de los corchetes de la plantilla
+// Coordenadas exactas medidas sobre la nueva plantilla (Arriba Izq, Arriba Der, Abajo Izq, Abajo Der)
+// MediaBox: [0, 7.83, 595.5, 850.08] -> QR de 70x70 pt centrado con margen uniforme dentro de los corchetes
 const BASE_SLOTS = [
-  // 1. Superior Izquierda
-  { qrX: 201.5, qrY: 434.0, qrSize: 49.0, markX: 285.0, markY: 435.0 },
-  // 2. Superior Derecha
-  { qrX: 500.9, qrY: 434.0, qrSize: 49.0, markX: 584.4, markY: 435.0 },
-  // 3. Inferior Izquierda
-  { qrX: 201.5, qrY: 13.0,  qrSize: 49.0, markX: 285.0, markY: 14.0 },
-  // 4. Inferior Derecha
-  { qrX: 500.9, qrY: 13.0,  qrSize: 49.0, markX: 584.4, markY: 14.0 },
+  // 1. Arriba Izquierda
+  { qrX: 193.89, qrY: 463.07, qrSize: 70.0, markX: 290.0, markY: 435.0 },
+  // 2. Arriba Derecha
+  { qrX: 490.44, qrY: 463.07, qrSize: 70.0, markX: 587.0, markY: 435.0 },
+  // 3. Abajo Izquierda
+  { qrX: 194.85, qrY: 42.06,  qrSize: 70.0, markX: 291.0, markY: 14.0 },
+  // 4. Abajo Derecha
+  { qrX: 491.40, qrY: 42.06,  qrSize: 70.0, markX: 587.0, markY: 14.0 },
 ];
 
 export function getCardNumberLabel(card, fallbackIndex = 0) {
@@ -75,7 +75,7 @@ export default function BatchQrPdfModal({
 }) {
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState('');
-  const [markOpacity, setMarkOpacity] = useState(0.65);
+  const [markOpacity, setMarkOpacity] = useState(0.75);
   const [offsetX, setOffsetX] = useState(0);
   const [offsetY, setOffsetY] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
@@ -100,8 +100,10 @@ export default function BatchQrPdfModal({
     setErrorMsg('');
 
     try {
-      setProgress('Cargando plantilla vectorial...');
-      const templateRes = await fetch('/templates/resenas-google.pdf');
+      setProgress('Cargando plantilla...');
+      const templateRes = await fetch('/templates/resenas-google.pdf', {
+        cache: 'no-store',
+      });
       if (!templateRes.ok) {
         throw new Error(
           'No se encontró /public/templates/resenas-google.pdf en el proyecto.'
@@ -147,16 +149,7 @@ export default function BatchQrPdfModal({
           const finalQrX = slot.qrX + Number(offsetX || 0);
           const finalQrY = slot.qrY + Number(offsetY || 0);
 
-          // Fondo blanco interior sin tapar los corchetes exteriores
-          copiedPage.drawRectangle({
-            x: finalQrX + 1,
-            y: finalQrY + 1,
-            width: slot.qrSize - 2,
-            height: slot.qrSize - 2,
-            color: rgb(1, 1, 1),
-          });
-
-          // Estampar QR centrado dentro de los corchetes
+          // Estampar QR centrado dentro de los 4 corchetes
           copiedPage.drawImage(qrImage, {
             x: finalQrX,
             y: finalQrY,
