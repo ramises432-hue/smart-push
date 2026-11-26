@@ -1436,7 +1436,7 @@ export default function AdminDashboard() {
                       onClick={() => setVisibleLimit((prev) => prev + 50)}
                       className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs font-semibold text-amber-400 px-5 py-2.5 rounded-xl transition"
                     >
-                      Mostrar m?s fichas ({visibleLimit} de {visibleCards.length})
+                      Mostrar más fichas ({visibleLimit} de {visibleCards.length})
                     </button>
                   </div>
                 )}

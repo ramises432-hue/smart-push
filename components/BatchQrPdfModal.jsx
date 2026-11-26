@@ -9,26 +9,20 @@ function normalizeCategory(val) {
     .trim()
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/s+/g, ' ');
+    .replace(/[\u0300-\u036f]/g, '');
 }
 
 function isGoogleReviewCategory(val) {
   const norm = normalizeCategory(val);
-  return (
-    norm === 'resenas google' ||
-    norm === 'resena de google' ||
-    norm === 'resenas de google' ||
-    norm.includes('google')
-  );
+  return norm.includes('google');
 }
 
-// Validaci?n estricta: solo lotes ya creados donde el 100% de tarjetas sean de Rese?as Google
+// Validación estricta: solo lotes ya creados donde el 100% de tarjetas sean de Reseñas Google
 export function validarLoteResenasGoogle(lote, tarjetasDelLote) {
   if (!lote || !lote.id || !Array.isArray(tarjetasDelLote) || tarjetasDelLote.length === 0) {
     return {
       permitido: false,
-      motivo: 'Disponible ?nicamente dentro de un lote ya creado con tarjetas.',
+      motivo: 'Disponible únicamente dentro de un lote ya creado con tarjetas.',
     };
   }
 
@@ -40,31 +34,31 @@ export function validarLoteResenasGoogle(lote, tarjetasDelLote) {
   if (noGoogle.length > 0) {
     return {
       permitido: false,
-      motivo: `Bloqueado: ${noGoogle.length} tarjeta(s) de este lote no est?n marcadas como "Rese?as Google".`,
+      motivo: `Bloqueado: ${noGoogle.length} tarjeta(s) de este lote no son de "Reseñas Google".`,
     };
   }
 
   return { permitido: true, motivo: '' };
 }
 
-// Coordenadas base en puntos PDF (eje Y desde abajo) para los 4 espacios de la hoja A4
-// qrSize ajustado para encajar limpio dentro de los corchetes del c?digo QR
+// Coordenadas en puntos PDF (Y desde abajo) centradas dentro de los corchetes de la plantilla
 const BASE_SLOTS = [
   // 1. Superior Izquierda
-  { qrX: 196.0, qrY: 468.0, qrSize: 64.0, markX: 282.0, markY: 432.0 },
+  { qrX: 201.5, qrY: 434.0, qrSize: 49.0, markX: 285.0, markY: 435.0 },
   // 2. Superior Derecha
-  { qrX: 493.6, qrY: 468.0, qrSize: 64.0, markX: 579.6, markY: 432.0 },
+  { qrX: 500.9, qrY: 434.0, qrSize: 49.0, markX: 584.4, markY: 435.0 },
   // 3. Inferior Izquierda
-  { qrX: 196.0, qrY: 47.0,  qrSize: 64.0, markX: 282.0, markY: 14.0 },
+  { qrX: 201.5, qrY: 13.0,  qrSize: 49.0, markX: 285.0, markY: 14.0 },
   // 4. Inferior Derecha
-  { qrX: 493.6, qrY: 47.0,  qrSize: 64.0, markX: 579.6, markY: 14.0 },
+  { qrX: 500.9, qrY: 13.0,  qrSize: 49.0, markX: 584.4, markY: 14.0 },
 ];
 
 export function getCardNumberLabel(card, fallbackIndex = 0) {
   const rawId = String(card?.id ?? card?.numero ?? '').trim();
   if (rawId) {
-    const numOnly = rawId.replace(/^#/, '');
-    if (/^d+$/.test(numOnly)) {
+    const numOnly = rawId.startsWith('#') ? rawId.slice(1) : rawId;
+    const isAllDigits = numOnly.length > 0 && [...numOnly].every((ch) => ch >= '0' && ch <= '9');
+    if (isAllDigits) {
       return numOnly.padStart(3, '0');
     }
     return numOnly;
@@ -81,7 +75,7 @@ export default function BatchQrPdfModal({
 }) {
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState('');
-  const [markOpacity, setMarkOpacity] = useState(0.45);
+  const [markOpacity, setMarkOpacity] = useState(0.65);
   const [offsetX, setOffsetX] = useState(0);
   const [offsetY, setOffsetY] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
@@ -110,7 +104,7 @@ export default function BatchQrPdfModal({
       const templateRes = await fetch('/templates/resenas-google.pdf');
       if (!templateRes.ok) {
         throw new Error(
-          'No se encontr? /public/templates/resenas-google.pdf en el proyecto.'
+          'No se encontró /public/templates/resenas-google.pdf en el proyecto.'
         );
       }
 
@@ -120,6 +114,10 @@ export default function BatchQrPdfModal({
       const font = await outDoc.embedFont(StandardFonts.CourierBold);
 
       const registeredNumbers = [];
+      let cleanBase = String(baseUrl || '').trim();
+      while (cleanBase.endsWith('/')) {
+        cleanBase = cleanBase.slice(0, -1);
+      }
 
       for (let pageIdx = 0; pageIdx < totalHojas; pageIdx++) {
         setProgress(`Procesando hoja ${pageIdx + 1} de ${totalHojas}...`);
@@ -135,7 +133,6 @@ export default function BatchQrPdfModal({
           const cardCode = getCardNumberLabel(card, globalIdx);
           registeredNumbers.push(cardCode);
 
-          const cleanBase = (baseUrl || '').replace(//+$/, '');
           const qrTarget = `${cleanBase}/c/${cardCode}?m=qr`;
 
           const qrDataUrl = await QRCode.toDataURL(qrTarget, {
@@ -150,7 +147,7 @@ export default function BatchQrPdfModal({
           const finalQrX = slot.qrX + Number(offsetX || 0);
           const finalQrY = slot.qrY + Number(offsetY || 0);
 
-          // Limpiar interior del cuadro de corchetes sin borrar los corchetes exteriores
+          // Fondo blanco interior sin tapar los corchetes exteriores
           copiedPage.drawRectangle({
             x: finalQrX + 1,
             y: finalQrY + 1,
@@ -167,9 +164,9 @@ export default function BatchQrPdfModal({
             height: slot.qrSize,
           });
 
-          // Registrar y estampar n?mero de ficha (#001, #002...)
+          // Registrar y estampar número de ficha (#001, #002...)
           const label = `#${cardCode}`;
-          const fontSize = 7.5;
+          const fontSize = 8;
           const textWidth = font.widthOfTextAtSize(label, fontSize);
           const markX = slot.markX + Number(offsetX || 0);
           const markY = slot.markY + Number(offsetY || 0);
@@ -200,7 +197,9 @@ export default function BatchQrPdfModal({
       const a = document.createElement('a');
       const loteSlug = String(lote.name ?? lote.nombre ?? 'Lote')
         .trim()
-        .replace(/s+/g, '-');
+        .split(' ')
+        .filter(Boolean)
+        .join('-');
       a.href = url;
       a.download = `SmartPush-${loteSlug}-ResenasGoogle.pdf`;
       a.click();
@@ -219,7 +218,7 @@ export default function BatchQrPdfModal({
         <div className="flex items-start justify-between border-b border-zinc-800 pb-4">
           <div>
             <span className="text-[11px] font-semibold uppercase tracking-wider text-amber-400">
-              Impresi?n A4 (4 tarjetas por hoja)
+              Impresión A4 (4 tarjetas por hoja)
             </span>
             <h2 className="text-lg font-bold text-zinc-100 mt-0.5">
               {lote?.name ?? lote?.nombre}
@@ -242,13 +241,13 @@ export default function BatchQrPdfModal({
           <div className="space-y-4">
             <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 space-y-1.5 text-xs text-zinc-300">
               <p>
-                ? <strong>Tarjetas en el lote:</strong> {sortedCards.length} (100 % Rese?as Google)
+                • <strong>Tarjetas en el lote:</strong> {sortedCards.length} (100 % Reseñas Google)
               </p>
               <p>
-                ? <strong>Hojas A4 a generar:</strong> {totalHojas} p?gina(s)
+                • <strong>Hojas A4 a generar:</strong> {totalHojas} página(s)
               </p>
               <p>
-                ? <strong>Registro de n?mero:</strong>{' '}
+                • <strong>Registro de número:</strong>{' '}
                 <code>#{getCardNumberLabel(sortedCards[0], 0)}</code>
                 {sortedCards.length > 1 && (
                   <>
@@ -259,7 +258,7 @@ export default function BatchQrPdfModal({
               </p>
               {lastRegisteredRange && (
                 <p className="text-emerald-400 pt-1">
-                  ? <strong>?ltimo lote generado:</strong> {lastRegisteredRange}
+                  ✓ <strong>Último lote generado:</strong> {lastRegisteredRange}
                 </p>
               )}
             </div>
@@ -267,15 +266,15 @@ export default function BatchQrPdfModal({
             <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 space-y-3">
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs text-zinc-400">
-                  <span>Visibilidad del n?mero (#ID)</span>
+                  <span>Visibilidad del número (#ID)</span>
                   <span className="text-amber-400 font-semibold">
                     {Math.round(markOpacity * 100)}%
                   </span>
                 </div>
                 <input
                   type="range"
-                  min="0.10"
-                  max="0.95"
+                  min="0.15"
+                  max="1.0"
                   step="0.05"
                   value={markOpacity}
                   onChange={(e) => setMarkOpacity(Number(e.target.value))}
