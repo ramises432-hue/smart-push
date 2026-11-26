@@ -40,17 +40,17 @@ export function validarLoteResenasGoogle(lote, tarjetasDelLote) {
   return { permitido: true, motivo: '' };
 }
 
-// Coordenadas exactas medidas sobre la nueva plantilla (Arriba Izq, Arriba Der, Abajo Izq, Abajo Der)
-// MediaBox: [0, 7.83, 595.5, 850.08] -> QR de 70x70 pt centrado con margen uniforme dentro de los corchetes
+// Coordenadas exactas medidas sobre "Plantilla definitiva .pdf"
+// MediaBox: [0, 7.83, 595.5, 850.08] -> QR de 64x64 pt centrado dentro de los 4 corchetes
 const BASE_SLOTS = [
   // 1. Arriba Izquierda
-  { qrX: 193.89, qrY: 463.07, qrSize: 70.0, markX: 290.0, markY: 435.0 },
+  { qrX: 189.87, qrY: 468.89, qrSize: 64.0, markX: 290.0, markY: 435.0 },
   // 2. Arriba Derecha
-  { qrX: 490.44, qrY: 463.07, qrSize: 70.0, markX: 587.0, markY: 435.0 },
+  { qrX: 487.38, qrY: 468.89, qrSize: 64.0, markX: 587.0, markY: 435.0 },
   // 3. Abajo Izquierda
-  { qrX: 194.85, qrY: 42.06,  qrSize: 70.0, markX: 291.0, markY: 14.0 },
+  { qrX: 190.29, qrY: 45.18,  qrSize: 64.0, markX: 290.0, markY: 14.0 },
   // 4. Abajo Derecha
-  { qrX: 491.40, qrY: 42.06,  qrSize: 70.0, markX: 587.0, markY: 14.0 },
+  { qrX: 487.38, qrY: 46.38,  qrSize: 64.0, markX: 587.0, markY: 14.0 },
 ];
 
 export function getCardNumberLabel(card, fallbackIndex = 0) {
@@ -100,7 +100,7 @@ export default function BatchQrPdfModal({
     setErrorMsg('');
 
     try {
-      setProgress('Cargando plantilla...');
+      setProgress('Cargando plantilla definitiva...');
       const templateRes = await fetch('/templates/resenas-google.pdf', {
         cache: 'no-store',
       });
