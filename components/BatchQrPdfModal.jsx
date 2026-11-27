@@ -40,17 +40,36 @@ export function validarLoteResenasGoogle(lote, tarjetasDelLote) {
   return { permitido: true, motivo: '' };
 }
 
-// Coordenadas exactas medidas sobre "Plantilla definitiva .pdf"
-const BASE_SLOTS = [
-  // 1. Arriba Izquierda
-  { qrX: 189.87, qrY: 468.89, qrSize: 64.0, markX: 290.0, markY: 435.0 },
-  // 2. Arriba Derecha
-  { qrX: 487.38, qrY: 468.89, qrSize: 64.0, markX: 587.0, markY: 435.0 },
-  // 3. Abajo Izquierda
-  { qrX: 190.29, qrY: 45.18,  qrSize: 64.0, markX: 290.0, markY: 14.0 },
-  // 4. Abajo Derecha
-  { qrX: 487.38, qrY: 46.38,  qrSize: 64.0, markX: 587.0, markY: 14.0 },
-];
+const TEMPLATE_OPTIONS = {
+  nfc: {
+    id: 'nfc',
+    label: 'Nueva base (NFC + QR)',
+    subtitle: 'Con ícono de celular NFC y QR en corchetes',
+    url: '/templates/resenas-google-nfc.pdf',
+    fileTag: 'NFC',
+    // Coordenadas exactas medidas sobre "Diseño definitivo con imagen NFC (1).pdf" (595 x 842 pt)
+    slots: [
+      { qrX: 189.45, qrY: 468.49, qrSize: 64.0, markX: 290.0, markY: 428.0 },
+      { qrX: 486.71, qrY: 468.49, qrSize: 64.0, markX: 587.0, markY: 428.0 },
+      { qrX: 189.45, qrY: 46.41,  qrSize: 64.0, markX: 290.0, markY: 7.0 },
+      { qrX: 486.71, qrY: 46.41,  qrSize: 64.0, markX: 587.0, markY: 7.0 },
+    ],
+  },
+  classic: {
+    id: 'classic',
+    label: 'Base anterior (Solo QR)',
+    subtitle: 'Plantilla anterior sin ícono NFC lateral',
+    url: '/templates/resenas-google.pdf',
+    fileTag: 'SoloQR',
+    // Coordenadas exactas medidas sobre "Plantilla definitiva .pdf"
+    slots: [
+      { qrX: 189.87, qrY: 468.89, qrSize: 64.0, markX: 290.0, markY: 435.0 },
+      { qrX: 487.38, qrY: 468.89, qrSize: 64.0, markX: 587.0, markY: 435.0 },
+      { qrX: 190.29, qrY: 45.18,  qrSize: 64.0, markX: 290.0, markY: 14.0 },
+      { qrX: 487.38, qrY: 46.38,  qrSize: 64.0, markX: 587.0, markY: 14.0 },
+    ],
+  },
+};
 
 export function getCardNumberLabel(card, fallbackIndex = 0) {
   const rawId = String(card?.id ?? card?.numero ?? '').trim();
@@ -76,6 +95,7 @@ export default function BatchQrPdfModal({
   tarjetas,
   baseUrl,
 }) {
+  const [templateKey, setTemplateKey] = useState('nfc');
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState('');
   const [markOpacity, setMarkOpacity] = useState(0.75);
@@ -116,6 +136,7 @@ export default function BatchQrPdfModal({
 
   if (!isOpen) return null;
 
+  const activeTemplate = TEMPLATE_OPTIONS[templateKey] || TEMPLATE_OPTIONS.nfc;
   const validacion = validarLoteResenasGoogle(lote, sortedCards);
 
   const selectedCards = sortedCards.filter((card, idx) =>
@@ -159,13 +180,13 @@ export default function BatchQrPdfModal({
     setErrorMsg('');
 
     try {
-      setProgress('Cargando plantilla definitiva...');
-      const templateRes = await fetch('/templates/resenas-google.pdf', {
+      setProgress(`Cargando ${activeTemplate.label}...`);
+      const templateRes = await fetch(activeTemplate.url, {
         cache: 'no-store',
       });
       if (!templateRes.ok) {
         throw new Error(
-          'No se encontró /public/templates/resenas-google.pdf en el proyecto.'
+          `No se encontró /public${activeTemplate.url} en el proyecto.`
         );
       }
 
@@ -189,7 +210,7 @@ export default function BatchQrPdfModal({
 
         for (let slotIdx = 0; slotIdx < slice.length; slotIdx++) {
           const card = slice[slotIdx];
-          const slot = BASE_SLOTS[slotIdx];
+          const slot = activeTemplate.slots[slotIdx];
           const globalIdx = pageIdx * 4 + slotIdx;
           const cardCode = getCardNumberLabel(card, globalIdx);
           registeredNumbers.push(cardCode);
@@ -238,8 +259,8 @@ export default function BatchQrPdfModal({
       const lastCode = registeredNumbers[registeredNumbers.length - 1] || '';
       setLastRegisteredRange(
         registeredNumbers.length > 1
-          ? `#${firstCode} a #${lastCode} (${registeredNumbers.length} fichas registradas)`
-          : `#${firstCode} (1 ficha registrada)`
+          ? `#${firstCode} a #${lastCode} (${registeredNumbers.length} fichas registradas — ${activeTemplate.label})`
+          : `#${firstCode} (1 ficha registrada — ${activeTemplate.label})`
       );
 
       setProgress('Preparando descarga del PDF...');
@@ -253,7 +274,7 @@ export default function BatchQrPdfModal({
         .filter(Boolean)
         .join('-');
       a.href = url;
-      a.download = `SmartPush-${loteSlug}-ResenasGoogle.pdf`;
+      a.download = `SmartPush-${loteSlug}-ResenasGoogle-${activeTemplate.fileTag}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
@@ -291,6 +312,42 @@ export default function BatchQrPdfModal({
           </div>
         ) : (
           <div className="space-y-4">
+            {/* SELECTOR DE DISEÑO BASE */}
+            <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3.5 space-y-2">
+              <span className="block text-xs font-semibold text-zinc-200">
+                Diseño de plantilla base
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {Object.values(TEMPLATE_OPTIONS).map((tpl) => {
+                  const isSelected = templateKey === tpl.id;
+                  return (
+                    <button
+                      key={tpl.id}
+                      type="button"
+                      onClick={() => setTemplateKey(tpl.id)}
+                      className={`text-left p-2.5 rounded-xl border transition ${
+                        isSelected
+                          ? 'bg-amber-500/15 border-amber-500 text-zinc-100'
+                          : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1.5">
+                        <span className="text-xs font-bold">{tpl.label}</span>
+                        <span
+                          className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                            isSelected ? 'bg-amber-400' : 'bg-zinc-700'
+                          }`}
+                        />
+                      </div>
+                      <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">
+                        {tpl.subtitle}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* SELECTOR DE TARJETAS A INCLUIR */}
             <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3.5 space-y-2.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -374,6 +431,9 @@ export default function BatchQrPdfModal({
 
             {/* RESUMEN DEL PDF A GENERAR */}
             <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3.5 space-y-1 text-xs text-zinc-300">
+              <p>
+                • <strong>Plantilla activa:</strong> {activeTemplate.label}
+              </p>
               <p>
                 • <strong>Tarjetas seleccionadas:</strong> {selectedCards.length} de {sortedCards.length}
               </p>
