@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import QRCode from 'qrcode';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
@@ -41,7 +41,6 @@ export function validarLoteResenasGoogle(lote, tarjetasDelLote) {
 }
 
 // Coordenadas exactas medidas sobre "Plantilla definitiva .pdf"
-// MediaBox: [0, 7.83, 595.5, 850.08] -> QR de 64x64 pt centrado dentro de los 4 corchetes
 const BASE_SLOTS = [
   // 1. Arriba Izquierda
   { qrX: 189.87, qrY: 468.89, qrSize: 64.0, markX: 290.0, markY: 435.0 },
@@ -66,6 +65,10 @@ export function getCardNumberLabel(card, fallbackIndex = 0) {
   return String(fallbackIndex + 1).padStart(3, '0');
 }
 
+function getCardKey(card, fallbackIndex = 0) {
+  return String(card?.id ?? card?.numero ?? fallbackIndex);
+}
+
 export default function BatchQrPdfModal({
   isOpen,
   onClose,
@@ -80,22 +83,78 @@ export default function BatchQrPdfModal({
   const [offsetY, setOffsetY] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
   const [lastRegisteredRange, setLastRegisteredRange] = useState('');
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [cardFilter, setCardFilter] = useState('');
+
+  const sortedCards = useMemo(() => {
+    return [...(tarjetas || [])].sort((a, b) =>
+      String(a.id ?? a.numero ?? '').localeCompare(
+        String(b.id ?? b.numero ?? ''),
+        undefined,
+        { numeric: true }
+      )
+    );
+  }, [tarjetas]);
+
+  useEffect(() => {
+    if (isOpen) {
+      const allKeys = [...(tarjetas || [])]
+        .sort((a, b) =>
+          String(a.id ?? a.numero ?? '').localeCompare(
+            String(b.id ?? b.numero ?? ''),
+            undefined,
+            { numeric: true }
+          )
+        )
+        .map((c, idx) => getCardKey(c, idx));
+      setSelectedIds(allKeys);
+      setCardFilter('');
+      setErrorMsg('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, lote?.id]);
 
   if (!isOpen) return null;
 
-  const sortedCards = [...(tarjetas || [])].sort((a, b) =>
-    String(a.id ?? a.numero ?? '').localeCompare(
-      String(b.id ?? b.numero ?? ''),
-      undefined,
-      { numeric: true }
-    )
+  const validacion = validarLoteResenasGoogle(lote, sortedCards);
+
+  const selectedCards = sortedCards.filter((card, idx) =>
+    selectedIds.includes(getCardKey(card, idx))
   );
 
-  const validacion = validarLoteResenasGoogle(lote, sortedCards);
-  const totalHojas = Math.ceil(sortedCards.length / 4);
+  const filteredList = sortedCards
+    .map((card, idx) => ({
+      card,
+      idx,
+      key: getCardKey(card, idx),
+      code: getCardNumberLabel(card, idx),
+    }))
+    .filter(({ code, card }) => {
+      const q = cardFilter.trim().toLowerCase();
+      if (!q) return true;
+      const client = String(card.client_name ?? '').toLowerCase();
+      return code.toLowerCase().includes(q) || `#${code}`.toLowerCase().includes(q) || client.includes(q);
+    });
+
+  const allSelected = sortedCards.length > 0 && selectedCards.length === sortedCards.length;
+  const totalHojas = Math.ceil(selectedCards.length / 4);
+
+  const handleSelectAll = () => {
+    setSelectedIds(sortedCards.map((c, idx) => getCardKey(c, idx)));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedIds([]);
+  };
+
+  const toggleCard = (key) => {
+    setSelectedIds((prev) =>
+      prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key]
+    );
+  };
 
   const handleGeneratePdf = async () => {
-    if (!validacion.permitido) return;
+    if (!validacion.permitido || selectedCards.length === 0) return;
     setGenerating(true);
     setErrorMsg('');
 
@@ -126,7 +185,7 @@ export default function BatchQrPdfModal({
         const [copiedPage] = await outDoc.copyPages(srcDoc, [0]);
         outDoc.addPage(copiedPage);
 
-        const slice = sortedCards.slice(pageIdx * 4, pageIdx * 4 + 4);
+        const slice = selectedCards.slice(pageIdx * 4, pageIdx * 4 + 4);
 
         for (let slotIdx = 0; slotIdx < slice.length; slotIdx++) {
           const card = slice[slotIdx];
@@ -207,8 +266,8 @@ export default function BatchQrPdfModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl">
-        <div className="flex items-start justify-between border-b border-zinc-800 pb-4">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
+        <div className="flex items-start justify-between border-b border-zinc-800 pb-3.5">
           <div>
             <span className="text-[11px] font-semibold uppercase tracking-wider text-amber-400">
               Impresión A4 (4 tarjetas por hoja)
@@ -232,23 +291,107 @@ export default function BatchQrPdfModal({
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 space-y-1.5 text-xs text-zinc-300">
+            {/* SELECTOR DE TARJETAS A INCLUIR */}
+            <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3.5 space-y-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-zinc-200">
+                  Tarjetas a incluir ({selectedCards.length} de {sortedCards.length})
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={handleSelectAll}
+                    disabled={allSelected}
+                    className="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 disabled:opacity-40 text-amber-400 border border-amber-500/30 transition"
+                  >
+                    Seleccionar todo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeselectAll}
+                    disabled={selectedCards.length === 0}
+                    className="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 text-zinc-300 border border-zinc-700 transition"
+                  >
+                    Quitar selección
+                  </button>
+                </div>
+              </div>
+
+              <input
+                type="text"
+                value={cardFilter}
+                onChange={(e) => setCardFilter(e.target.value)}
+                placeholder="Filtrar por #ID o negocio para marcar/desmarcar..."
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-amber-500"
+              />
+
+              <div className="max-h-44 overflow-y-auto divide-y divide-zinc-800/70 border border-zinc-800/80 rounded-lg bg-zinc-900/50">
+                {filteredList.length === 0 ? (
+                  <p className="text-xs text-zinc-500 text-center py-4">
+                    No hay tarjetas que coincidan con "{cardFilter}".
+                  </p>
+                ) : (
+                  filteredList.map(({ card, key, code }) => {
+                    const checked = selectedIds.includes(key);
+                    return (
+                      <label
+                        key={key}
+                        className={`flex items-center justify-between gap-2.5 px-3 py-2 cursor-pointer text-xs transition ${
+                          checked
+                            ? 'bg-amber-500/5 text-zinc-100 hover:bg-amber-500/10'
+                            : 'text-zinc-500 hover:bg-zinc-800/40'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleCard(key)}
+                            className="w-3.5 h-3.5 accent-amber-500 rounded cursor-pointer shrink-0"
+                          />
+                          <span
+                            className={`font-mono font-bold px-1.5 py-0.5 rounded text-[11px] shrink-0 ${
+                              checked
+                                ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                                : 'bg-zinc-800 text-zinc-500'
+                            }`}
+                          >
+                            #{code}
+                          </span>
+                          <span className="truncate">
+                            {card.client_name || 'Disponible (Sin asignar)'}
+                          </span>
+                        </div>
+                        <span className="text-[10px] shrink-0">
+                          {checked ? 'Incluida' : 'Excluida'}
+                        </span>
+                      </label>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* RESUMEN DEL PDF A GENERAR */}
+            <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3.5 space-y-1 text-xs text-zinc-300">
               <p>
-                • <strong>Tarjetas en el lote:</strong> {sortedCards.length} (100 % Reseñas Google)
+                • <strong>Tarjetas seleccionadas:</strong> {selectedCards.length} de {sortedCards.length}
               </p>
               <p>
                 • <strong>Hojas A4 a generar:</strong> {totalHojas} página(s)
               </p>
-              <p>
-                • <strong>Registro de número:</strong>{' '}
-                <code>#{getCardNumberLabel(sortedCards[0], 0)}</code>
-                {sortedCards.length > 1 && (
-                  <>
-                    {' '}a <code>#{getCardNumberLabel(sortedCards[sortedCards.length - 1], sortedCards.length - 1)}</code>
-                  </>
-                )}{' '}
-                estampado en cada tarjeta.
-              </p>
+              {selectedCards.length > 0 && (
+                <p>
+                  • <strong>Registro de número:</strong>{' '}
+                  <code>#{getCardNumberLabel(selectedCards[0], 0)}</code>
+                  {selectedCards.length > 1 && (
+                    <>
+                      {' '}a <code>#{getCardNumberLabel(selectedCards[selectedCards.length - 1], selectedCards.length - 1)}</code>
+                    </>
+                  )}{' '}
+                  estampado en cada tarjeta.
+                </p>
+              )}
               {lastRegisteredRange && (
                 <p className="text-emerald-400 pt-1">
                   ✓ <strong>Último lote generado:</strong> {lastRegisteredRange}
@@ -256,7 +399,8 @@ export default function BatchQrPdfModal({
               )}
             </div>
 
-            <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 space-y-3">
+            {/* CONTROLES DE VISIBILIDAD Y AJUSTE FINO */}
+            <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3.5 space-y-3">
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs text-zinc-400">
                   <span>Visibilidad del número (#ID)</span>
@@ -316,10 +460,14 @@ export default function BatchQrPdfModal({
             <button
               type="button"
               onClick={handleGeneratePdf}
-              disabled={generating}
-              className="w-full bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-zinc-950 font-semibold text-sm py-2.5 rounded-xl transition"
+              disabled={generating || selectedCards.length === 0}
+              className="w-full bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-zinc-950 font-semibold text-sm py-2.5 rounded-xl transition"
             >
-              {generating ? 'Generando PDF...' : 'Descargar PDF listo para imprimir'}
+              {generating
+                ? 'Generando PDF...'
+                : selectedCards.length === 0
+                ? 'Selecciona al menos 1 tarjeta'
+                : `Descargar PDF (${selectedCards.length} tarjeta${selectedCards.length === 1 ? '' : 's'})`}
             </button>
           </div>
         )}
